@@ -1,0 +1,27 @@
+{
+  "name": "ai-resume-builder",
+  "version": "1.0.0",
+  "description": "Production-ready free AI Resume Builder for students & job seekers",
+  "private": true,
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspace=apps/web",
+    "dev:all": "concurrently \"npm run dev --workspace=apps/api\" \"npm run dev --workspace=apps/web\"",
+    "build": "npm run build --workspaces",
+    "test": "npx tsx --test tests/*.test.ts tests/*.test.tsx",
+    "test:unit": "npx tsx --test tests/engine.test.ts tests/auth.test.ts tests/export.test.ts tests/ai_mock.test.ts tests/upload_security.test.ts",
+    "test:render": "npx tsx --test tests/render.test.tsx tests/switching.test.ts",
+    "typecheck": "tsc --noEmit -p apps/web/tsconfig.json && tsc --noEmit -p apps/api/tsconfig.json",
+    "lint": "tsc --noEmit -p apps/web/tsconfig.json && tsc --noEmit -p apps/api/tsconfig.json",
+    "db:generate": "npm run db:generate --workspace=apps/api",
+    "db:push": "npm run db:push --workspace=apps/api",
+    "db:seed": "npm run db:seed --workspace=apps/api"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2",
+    "typescript": "^5.7.3"
+  }
+}

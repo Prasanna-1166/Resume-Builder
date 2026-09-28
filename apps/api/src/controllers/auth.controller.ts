@@ -1,0 +1,89 @@
+import { Request, Response } from 'express';
+import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
+import { prisma } from '../config/db';
+import { AuthenticatedRequest } from '../middleware/auth';
+
+export async function login(req: Request, res: Response): Promise<void> {
+  try {
+    const { email, password } = req.body;
+
+    if (!email || !password) {
+      res.status(400).json({ error: 'Email and password are required.' });
+      return;
+    }
+
+    const admin = await prisma.adminUser.findUnique({
+      where: { email: email.toLowerCase().trim() }
+    });
+
+    if (!admin) {
+      res.status(401).json({ error: 'Invalid credentials.' });
+      return;
+    }
+
+    const isMatch = await bcrypt.compare(password, admin.password);
+    if (!isMatch) {
+      res.status(401).json({ error: 'Invalid credentials.' });
+      return;
+    }
+
+    const jwtSecret = process.env.JWT_SECRET || 'dev_secret_key_12345';
+    const token = jwt.sign(
+      { id: admin.id, email: admin.email, role: admin.role },
+      jwtSecret,
+      { expiresIn: '7d' }
+    );
+
+    const isProd = process.env.NODE_ENV === 'production';
+    res.cookie('admin_token', token, {
+      httpOnly: true,
+      secure: isProd,
+      sameSite: isProd ? 'strict' : 'lax',
+      maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+    });
+
+    res.json({
+      success: true,
+      token,
+      user: {
+        id: admin.id,
+        email: admin.email,
+        name: admin.name,
+        role: admin.role
+      }
+    });
+  } catch (error) {
+    console.error('Login error:', error);
+    res.status(500).json({ error: 'Internal server error during authentication.' });
+  }
+}
+
+export async function getMe(req: AuthenticatedRequest, res: Response): Promise<void> {
+  try {
+    if (!req.user) {
+      res.status(401).json({ error: 'Unauthorized.' });
+      return;
+    }
+
+    const admin = await prisma.adminUser.findUnique({
+      where: { id: req.user.id },
+      select: { id: true, email: true, name: true, role: true, createdAt: true }
+    });
+
+    if (!admin) {
+      res.status(404).json({ error: 'User not found.' });
+      return;
+    }
+
+    res.json({ user: admin });
+  } catch (error) {
+    console.error('GetMe error:', error);
+    res.status(500).json({ error: 'Failed to retrieve admin profile.' });
+  }
+}
+
+export function logout(_req: Request, res: Response): void {
+  res.clearCookie('admin_token');
+  res.json({ success: true, message: 'Logged out successfully.' });
+}

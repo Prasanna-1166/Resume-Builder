@@ -1,0 +1,59 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model AdminUser {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String
+  name      String
+  role      String   @default("ADMIN")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Template {
+  id              String   @id // e.g. "template_01"
+  name            String
+  category        String   // "technical", "student", "executive", "academic", "creative", "general"
+  pageSize        String   @default("letter") // "letter" or "a4"
+  columns         Int      @default(1)
+  description     String
+  suitableFor     String   // comma separated JSON string: '["student","fresher","technical"]'
+  tags            String   // comma separated JSON string: '["Minimalist","Tech"]'
+  colorScheme     String   @default("#0f172a")
+  fontFamily      String   @default("sans")
+  referenceSource String
+  status          String   @default("ACTIVE") // DRAFT, PENDING, ACTIVE, INACTIVE
+  isPopular       Boolean  @default(false)
+  displayOrder    Int      @default(0)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model UploadedReference {
+  id           String   @id @default(uuid())
+  filename     String
+  originalName String
+  mimeType     String
+  sizeBytes    Int
+  storagePath  String
+  status       String   @default("PENDING") // PENDING, PROCESSED, ARCHIVED
+  notes        String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model SiteConfig {
+  id        String   @id @default("default")
+  siteName  String   @default("Free AI Resume Builder")
+  tagline   String   @default("Build ATS-Optimized Professional Resumes in Minutes")
+  notice    String?
+  aiEnabled Boolean  @default(true)
+  updatedAt DateTime @updatedAt
+}

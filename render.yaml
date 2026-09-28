@@ -1,0 +1,26 @@
+services:
+  - type: web
+    name: ai-resume-builder-api
+    env: node
+    plan: free
+    buildCommand: npm install && npm run build --workspace=@ai-resume/core && npm run build --workspace=@ai-resume/api
+    startCommand: npm run start --workspace=@ai-resume/api
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: HOST
+        value: 0.0.0.0
+      - key: PORT
+        value: 10000
+      - key: DATABASE_URL
+        sync: false
+      - key: FRONTEND_URL
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: ADMIN_DEFAULT_EMAIL
+        value: admin@resumebuilder.local
+      - key: ADMIN_DEFAULT_PASSWORD
+        sync: false
