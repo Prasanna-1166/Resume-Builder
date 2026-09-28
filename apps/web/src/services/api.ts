@@ -136,5 +136,62 @@ export const apiClient = {
     });
     if (!res.ok) throw new Error('Health check failed');
     return res.json();
+  },
+
+  // Analytics Telemetry & Admin Endpoints
+  async trackEvent(payload: {
+    eventType: string;
+    visitorId: string;
+    sessionId: string;
+    templateId?: string | null;
+    device?: string;
+    status?: 'SUCCESS' | 'ERROR';
+    metadata?: Record<string, any>;
+  }) {
+    try {
+      const res = await fetch(`${API_BASE}/analytics/track`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+        credentials: 'include'
+      });
+      return res.json();
+    } catch {
+      // Non-blocking telemetry ingestion
+      return { success: false };
+    }
+  },
+
+  async getAnalyticsOverview(range: string = '30d') {
+    const res = await fetch(`${API_BASE}/admin/analytics/overview?range=${range}`, {
+      credentials: 'include'
+    });
+    if (!res.ok) throw new Error('Failed to fetch analytics overview');
+    return res.json();
+  },
+
+  async getAnalyticsTimeseries(range: string = '30d') {
+    const res = await fetch(`${API_BASE}/admin/analytics/timeseries?range=${range}`, {
+      credentials: 'include'
+    });
+    if (!res.ok) throw new Error('Failed to fetch analytics timeseries');
+    return res.json();
+  },
+
+  async getAnalyticsTemplates(range: string = '30d') {
+    const res = await fetch(`${API_BASE}/admin/analytics/templates?range=${range}`, {
+      credentials: 'include'
+    });
+    if (!res.ok) throw new Error('Failed to fetch template analytics');
+    return res.json();
+  },
+
+  async getAnalyticsAi(range: string = '30d') {
+    const res = await fetch(`${API_BASE}/admin/analytics/ai?range=${range}`, {
+      credentials: 'include'
+    });
+    if (!res.ok) throw new Error('Failed to fetch AI analytics');
+    return res.json();
   }
 };
+

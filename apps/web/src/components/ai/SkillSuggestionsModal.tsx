@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useResume } from '../../context/ResumeContext';
 import { apiClient } from '../../services/api';
 import { Sparkles, Plus, Check, X, RefreshCw } from 'lucide-react';
+import { track } from '../../services/analytics';
 
 interface SkillSuggestionsModalProps {
   isOpen: boolean;
@@ -28,8 +29,10 @@ export const SkillSuggestionsModal: React.FC<SkillSuggestionsModalProps> = ({
         (s: string) => !currentSkillsList.some(curr => curr.toLowerCase() === s.toLowerCase())
       );
       setSuggestions(filtered);
+      track('AI_SKILLS', { status: 'SUCCESS' });
     } catch (err) {
       console.error(err);
+      track('AI_SKILLS', { status: 'ERROR' });
     } finally {
       setLoading(false);
     }

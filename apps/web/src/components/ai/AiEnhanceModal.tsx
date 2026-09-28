@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { apiClient } from '../../services/api';
 import { useResume } from '../../context/ResumeContext';
 import { Sparkles, Check, X, RefreshCw, AlertTriangle } from 'lucide-react';
+import { track } from '../../services/analytics';
 
 interface AiEnhanceModalProps {
   isOpen: boolean;
@@ -35,13 +36,20 @@ export const AiEnhanceModal: React.FC<AiEnhanceModalProps> = ({
         const res = await apiClient.improveSummary(currentText, resumeData.targetRole);
         setSuggestions(res.suggestions || []);
         if (res.suggestions?.length > 0) setSelectedSuggestion(res.suggestions[0]);
+        track('AI_SUMMARY', { status: 'SUCCESS' });
       } else {
         const res = await apiClient.improveBullet(currentText, context);
         setSuggestions(res.suggestions || []);
         if (res.suggestions?.length > 0) setSelectedSuggestion(res.suggestions[0]);
+        track('AI_BULLET', { status: 'SUCCESS' });
       }
     } catch (e: any) {
       console.error(e);
+      if (type === 'summary') {
+        track('AI_SUMMARY', { status: 'ERROR' });
+      } else {
+        track('AI_BULLET', { status: 'ERROR' });
+      }
       setError('Failed to generate AI enhancements. Please check your backend connection.');
     } finally {
       setLoading(false);

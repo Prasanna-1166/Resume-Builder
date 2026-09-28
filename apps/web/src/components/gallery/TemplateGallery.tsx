@@ -1,8 +1,9 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { TEMPLATE_CATALOG, TemplateMetadata } from '@ai-resume/templates';
 import { useResume } from '../../context/ResumeContext';
 import { Search, Filter, Eye, Check, X, Sparkles, Layers } from 'lucide-react';
 import { getTemplateComponent } from '@ai-resume/templates';
+import { track } from '../../services/analytics';
 
 interface TemplateGalleryProps {
   onSelectTemplate: (templateId: string) => void;
@@ -15,6 +16,10 @@ export const TemplateGallery: React.FC<TemplateGalleryProps> = ({ onSelectTempla
   const [selectedPageSize, setSelectedPageSize] = useState<string>('all');
   const [selectedArchetype, setSelectedArchetype] = useState<string>('all');
   const [previewTemplate, setPreviewTemplate] = useState<TemplateMetadata | null>(null);
+
+  useEffect(() => {
+    track('PAGE_VIEW', { metadata: { page: 'gallery' } });
+  }, []);
 
   const categories = [
     { id: 'all', label: 'All Templates' },
@@ -50,8 +55,14 @@ export const TemplateGallery: React.FC<TemplateGalleryProps> = ({ onSelectTempla
   }, [searchQuery, selectedCategory, selectedPageSize, selectedArchetype]);
 
   const handleApplyTemplate = (templateId: string) => {
+    track('TEMPLATE_SELECTED', { templateId, metadata: { source: 'gallery_card' } });
     setTemplate(templateId);
     onSelectTemplate(templateId);
+  };
+
+  const handlePreviewTemplate = (template: TemplateMetadata) => {
+    track('TEMPLATE_VIEW', { templateId: template.id });
+    setPreviewTemplate(template);
   };
 
   const PreviewComponent = previewTemplate ? getTemplateComponent(previewTemplate.id) : null;
@@ -192,7 +203,7 @@ export const TemplateGallery: React.FC<TemplateGalleryProps> = ({ onSelectTempla
                 {/* Card Bottom Actions */}
                 <div className="p-4 bg-gray-50/50 flex items-center justify-between gap-2 border-t border-gray-100">
                   <button
-                    onClick={() => setPreviewTemplate(template)}
+                    onClick={() => handlePreviewTemplate(template)}
                     className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium text-gray-700 hover:bg-gray-200 bg-gray-100 transition-colors"
                   >
                     <Eye className="w-3.5 h-3.5 text-gray-500" />

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useResume } from '../../context/ResumeContext';
 import { apiClient } from '../../services/api';
 import { Sparkles, CheckCircle2, AlertCircle, Plus, X, Search, ChevronRight } from 'lucide-react';
+import { track } from '../../services/analytics';
 
 interface JobAnalyzerModalProps {
   isOpen: boolean;
@@ -30,8 +31,10 @@ export const JobAnalyzerModal: React.FC<JobAnalyzerModalProps> = ({
     try {
       const res = await apiClient.analyzeJob(jobDescription, currentSkills);
       setAnalysis(res);
+      track('JOB_ANALYSIS', { status: 'SUCCESS' });
     } catch (e) {
       console.error(e);
+      track('JOB_ANALYSIS', { status: 'ERROR' });
       alert('Failed to analyze job description.');
     } finally {
       setLoading(false);

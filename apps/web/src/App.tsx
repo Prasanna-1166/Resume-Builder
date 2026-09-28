@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ResumeProvider, useResume } from './context/ResumeContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { Navbar } from './components/navbar/Navbar';
@@ -12,9 +12,55 @@ import { JobAnalyzerModal } from './components/ai/JobAnalyzerModal';
 import { AtsAuditorModal } from './components/ai/AtsAuditorModal';
 import { AdminLogin } from './components/admin/AdminLogin';
 import { AdminDashboard } from './components/admin/AdminDashboard';
+import { track } from './services/analytics';
+
+type TabType = 'landing' | 'gallery' | 'editor' | 'admin';
+
+function getTabFromPath(): TabType {
+  if (typeof window === 'undefined') return 'landing';
+  const path = window.location.pathname.toLowerCase();
+  if (path === '/admin' || path.startsWith('/admin/')) return 'admin';
+  if (path === '/editor' || path.startsWith('/editor/')) return 'editor';
+  if (path === '/templates' || path === '/gallery') return 'gallery';
+  return 'landing';
+}
+
+function getPathFromTab(tab: TabType): string {
+  switch (tab) {
+    case 'admin':
+      return '/admin';
+    case 'editor':
+      return '/editor';
+    case 'gallery':
+      return '/templates';
+    case 'landing':
+    default:
+      return '/';
+  }
+}
 
 const AppContent: React.FC = () => {
-  const [currentTab, setCurrentTab] = useState<'landing' | 'gallery' | 'editor' | 'admin'>('landing');
+  const [currentTab, setCurrentTabState] = useState<TabType>(() => getTabFromPath());
+
+  const navigateToTab = (tab: TabType, replaceState = false) => {
+    setCurrentTabState(tab);
+    const targetPath = getPathFromTab(tab);
+    if (window.location.pathname !== targetPath) {
+      if (replaceState) {
+        window.history.replaceState({ tab }, '', targetPath);
+      } else {
+        window.history.pushState({ tab }, '', targetPath);
+      }
+    }
+  };
+
+  useEffect(() => {
+    const handlePopState = () => {
+      setCurrentTabState(getTabFromPath());
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
 
   // AI & ATS Modals State
   const [aiModal, setAiModal] = useState<{
@@ -52,10 +98,10 @@ const AppContent: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-100 flex flex-col font-sans">
-      {/* Navigation */}
+      {/* Navigation - public tabs only */}
       <Navbar
         currentTab={currentTab}
-        setCurrentTab={setCurrentTab}
+        setCurrentTab={navigateToTab}
         openJobAnalyzer={() => setJobAnalyzerOpen(true)}
         openAtsAuditor={() => setAtsAuditorOpen(true)}
       />
@@ -64,16 +110,18 @@ const AppContent: React.FC = () => {
       <main className="flex-1">
         {currentTab === 'landing' && (
           <LandingPage
-            onSelectTemplate={(_id) => setCurrentTab('editor')}
-            onBrowseTemplates={() => setCurrentTab('gallery')}
-            onCreateResume={() => setCurrentTab('editor')}
-            onNavigateAdmin={() => setCurrentTab('admin')}
+            onSelectTemplate={(_id) => navigateToTab('editor')}
+            onBrowseTemplates={() => navigateToTab('gallery')}
+            onCreateResume={() => {
+              track('RESUME_CREATED', { metadata: { source: 'landing_cta' } });
+              navigateToTab('editor');
+            }}
           />
         )}
 
         {currentTab === 'gallery' && (
           <TemplateGallery
-            onSelectTemplate={(_id) => setCurrentTab('editor')}
+            onSelectTemplate={(_id) => navigateToTab('editor')}
           />
         )}
 
@@ -90,7 +138,7 @@ const AppContent: React.FC = () => {
 
               {/* Right Column: Live Resume Preview (55%) */}
               <div className="lg:col-span-7 sticky top-20">
-                <LivePreview onOpenGallery={() => setCurrentTab('gallery')} />
+                <LivePreview onOpenGallery={() => navigateToTab('gallery')} />
               </div>
             </div>
           </div>

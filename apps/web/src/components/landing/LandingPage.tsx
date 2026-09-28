@@ -1,25 +1,29 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { TEMPLATE_CATALOG } from '@ai-resume/templates';
 import { useResume } from '../../context/ResumeContext';
-import { ArrowRight, CheckCircle2, ShieldCheck, Sparkles, Download, Layout, Cpu, Lock } from 'lucide-react';
+import { ArrowRight, CheckCircle2, ShieldCheck, Sparkles, Download, Layout, Cpu } from 'lucide-react';
+import { track } from '../../services/analytics';
 
 interface LandingPageProps {
   onSelectTemplate: (templateId: string) => void;
   onBrowseTemplates: () => void;
   onCreateResume: () => void;
-  onNavigateAdmin: () => void;
 }
 
 export const LandingPage: React.FC<LandingPageProps> = ({
   onSelectTemplate,
   onBrowseTemplates,
-  onCreateResume,
-  onNavigateAdmin
+  onCreateResume
 }) => {
   const { setTemplate } = useResume();
   const featuredTemplates = TEMPLATE_CATALOG.filter(t => t.isPopular).slice(0, 6);
 
+  useEffect(() => {
+    track('PAGE_VIEW', { metadata: { page: 'landing' } });
+  }, []);
+
   const handleTemplateClick = (templateId: string) => {
+    track('TEMPLATE_SELECTED', { templateId, metadata: { source: 'landing_featured' } });
     setTemplate(templateId);
     onSelectTemplate(templateId);
   };
@@ -196,7 +200,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
         </div>
       </section>
 
-      {/* Footer with Discrete Admin Link */}
+      {/* Footer */}
       <footer className="mt-auto bg-gray-900 text-gray-400 py-8 px-4 text-xs">
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-4">
           <div>
@@ -204,13 +208,6 @@ export const LandingPage: React.FC<LandingPageProps> = ({
           </div>
           <div className="flex items-center gap-6">
             <span className="text-gray-500">v1.0.0</span>
-            <button
-              onClick={onNavigateAdmin}
-              className="text-gray-500 hover:text-gray-300 transition-colors flex items-center gap-1"
-            >
-              <Lock className="w-3 h-3" />
-              <span>Admin Portal</span>
-            </button>
           </div>
         </div>
       </footer>

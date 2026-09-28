@@ -3,6 +3,7 @@ import { useResume } from '../../context/ResumeContext';
 import { TEMPLATE_CATALOG, getTemplateComponent } from '@ai-resume/templates';
 import { apiClient } from '../../services/api';
 import { Download, Printer, ZoomIn, ZoomOut, RotateCcw, FileText, ChevronDown } from 'lucide-react';
+import { track } from '../../services/analytics';
 
 interface LivePreviewProps {
   onOpenGallery?: () => void;
@@ -17,6 +18,7 @@ export const LivePreview: React.FC<LivePreviewProps> = ({ onOpenGallery }) => {
   const TemplateComponent = getTemplateComponent(resumeData.templateId);
 
   const handlePrintPdf = () => {
+    track('PDF_EXPORTED', { templateId: resumeData.templateId, status: 'SUCCESS' });
     window.print();
   };
 
@@ -33,12 +35,19 @@ export const LivePreview: React.FC<LivePreviewProps> = ({ onOpenGallery }) => {
       a.click();
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
+      track('DOCX_EXPORTED', { templateId: resumeData.templateId, status: 'SUCCESS' });
     } catch (err) {
       console.error('Failed to export DOCX:', err);
+      track('DOCX_EXPORTED', { templateId: resumeData.templateId, status: 'ERROR' });
       alert('Failed to generate DOCX. Please try again.');
     } finally {
       setIsExportingDocx(false);
     }
+  };
+
+  const handleTemplateSwitch = (newTemplateId: string) => {
+    track('TEMPLATE_SWITCHED', { templateId: newTemplateId });
+    setTemplate(newTemplateId);
   };
 
   return (
@@ -50,7 +59,7 @@ export const LivePreview: React.FC<LivePreviewProps> = ({ onOpenGallery }) => {
           <span className="text-xs font-semibold text-gray-700 hidden sm:inline">Template:</span>
           <select
             value={resumeData.templateId}
-            onChange={e => setTemplate(e.target.value)}
+            onChange={e => handleTemplateSwitch(e.target.value)}
             className="px-2.5 py-1 text-xs bg-gray-50 border border-gray-300 rounded font-semibold text-gray-900 focus:outline-none focus:ring-1 focus:ring-sky-500"
           >
             {TEMPLATE_CATALOG.map(t => (

@@ -57,3 +57,21 @@ model SiteConfig {
   aiEnabled Boolean  @default(true)
   updatedAt DateTime @updatedAt
 }
+
+model AnalyticsEvent {
+  id          String   @id @default(uuid())
+  visitorId   String
+  sessionId   String
+  eventType   String   // PAGE_VIEW, TEMPLATE_VIEW, TEMPLATE_SELECTED, TEMPLATE_SWITCHED, RESUME_CREATED, RESUME_SAVED, PDF_EXPORTED, DOCX_EXPORTED, AI_SUMMARY, AI_BULLET, AI_SKILLS, JOB_ANALYSIS
+  templateId  String?
+  device      String?  // "desktop", "mobile", "tablet"
+  status      String   @default("SUCCESS") // "SUCCESS", "ERROR"
+  metadata    String?  // Optional sanitized non-PII metadata JSON
+  createdAt   DateTime @default(now())
+
+  @@index([eventType])
+  @@index([createdAt])
+  @@index([visitorId])
+  @@index([sessionId])
+  @@index([templateId])
+}

@@ -9,8 +9,12 @@ import templateRoutes from './routes/templates.routes';
 import aiRoutes from './routes/ai.routes';
 import exportRoutes from './routes/export.routes';
 import healthRoutes from './routes/health.routes';
+import analyticsRoutes from './routes/analytics.routes';
 
 const app = express();
+
+// Trust reverse proxy (Render / Cloud load balancer single hop) for accurate client IP in express-rate-limit
+app.set('trust proxy', 1);
 
 const rawFrontendUrls = process.env.FRONTEND_URL || 'http://localhost:5173';
 const configuredOrigins = rawFrontendUrls
@@ -59,6 +63,8 @@ app.use('/api/templates', templateRoutes);
 app.use('/api/ai', aiRoutes);
 app.use('/api/export', exportRoutes);
 app.use('/api/health', healthRoutes);
+app.use('/api/analytics', analyticsRoutes);
+app.use('/api/admin/analytics', analyticsRoutes);
 
 app.get('/api', (_req, res) => {
   res.json({
