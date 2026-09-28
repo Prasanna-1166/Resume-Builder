@@ -19,9 +19,32 @@ type TabType = 'landing' | 'gallery' | 'editor' | 'admin';
 function getTabFromPath(): TabType {
   if (typeof window === 'undefined') return 'landing';
   const path = window.location.pathname.toLowerCase();
-  if (path === '/admin' || path.startsWith('/admin/')) return 'admin';
-  if (path === '/editor' || path.startsWith('/editor/')) return 'editor';
-  if (path === '/templates' || path === '/gallery') return 'gallery';
+  const hash = window.location.hash.toLowerCase().replace(/^#\/?/, '');
+  const searchParams = new URLSearchParams(window.location.search);
+  const tabParam = (searchParams.get('tab') || '').toLowerCase();
+
+  if (
+    path === '/admin' ||
+    path.startsWith('/admin/') ||
+    hash === 'admin' ||
+    tabParam === 'admin' ||
+    searchParams.has('admin')
+  ) {
+    return 'admin';
+  }
+  if (path === '/editor' || path.startsWith('/editor/') || hash === 'editor' || tabParam === 'editor') {
+    return 'editor';
+  }
+  if (
+    path === '/templates' ||
+    path === '/gallery' ||
+    hash === 'templates' ||
+    hash === 'gallery' ||
+    tabParam === 'templates' ||
+    tabParam === 'gallery'
+  ) {
+    return 'gallery';
+  }
   return 'landing';
 }
 
@@ -55,11 +78,15 @@ const AppContent: React.FC = () => {
   };
 
   useEffect(() => {
-    const handlePopState = () => {
+    const handleUrlChange = () => {
       setCurrentTabState(getTabFromPath());
     };
-    window.addEventListener('popstate', handlePopState);
-    return () => window.removeEventListener('popstate', handlePopState);
+    window.addEventListener('popstate', handleUrlChange);
+    window.addEventListener('hashchange', handleUrlChange);
+    return () => {
+      window.removeEventListener('popstate', handleUrlChange);
+      window.removeEventListener('hashchange', handleUrlChange);
+    };
   }, []);
 
   // AI & ATS Modals State

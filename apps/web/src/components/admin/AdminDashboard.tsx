@@ -20,8 +20,7 @@ import {
   FileText,
   BarChart3,
   TrendingUp,
-  Calendar,
-  MousePointerClick
+  Calendar
 } from 'lucide-react';
 
 export const AdminDashboard: React.FC = () => {
@@ -49,7 +48,7 @@ export const AdminDashboard: React.FC = () => {
         apiClient.getTemplates({ status: 'all' }).catch(() => ({ templates: [] }))
       ]);
       setHealth(hRes);
-      setTemplates(tRes.templates || []);
+      setTemplates(Array.isArray(tRes?.templates) ? tRes.templates : []);
     } catch (e) {
       console.error('Failed to fetch system data:', e);
     }
@@ -66,8 +65,8 @@ export const AdminDashboard: React.FC = () => {
       ]);
 
       setOverview(ovRes);
-      setTimeseries(tsRes?.series || []);
-      setTemplateStats(tmRes?.templates || []);
+      setTimeseries(Array.isArray(tsRes?.series) ? tsRes.series : []);
+      setTemplateStats(Array.isArray(tmRes?.templates) ? tmRes.templates : []);
       setAiStats(aiRes);
     } catch (e) {
       console.error('Failed to fetch analytics:', e);
@@ -137,8 +136,10 @@ export const AdminDashboard: React.FC = () => {
     }
   };
 
-  // Find max value in timeseries for proportional bar rendering
-  const maxDayVisitors = Math.max(...timeseries.map(t => t.visitors || 0), 1);
+  const safeTimeseries = Array.isArray(timeseries) ? timeseries : [];
+  const safeTemplateStats = Array.isArray(templateStats) ? templateStats : [];
+  const safeTemplates = Array.isArray(templates) ? templates : [];
+  const maxDayVisitors = Math.max(...safeTimeseries.map(t => Number(t.visitors) || 0), 1);
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
@@ -168,6 +169,55 @@ export const AdminDashboard: React.FC = () => {
             <LogOut className="w-3.5 h-3.5" />
             <span>Sign Out</span>
           </button>
+        </div>
+      </div>
+
+      {/* System Health Overview Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="p-4 bg-white rounded-xl border border-gray-200 shadow-2xs space-y-1">
+          <div className="flex items-center justify-between text-gray-500 text-xs">
+            <span>API Server</span>
+            <Activity className="w-4 h-4 text-emerald-600" />
+          </div>
+          <div className="text-xl font-extrabold text-gray-900 capitalize">
+            {health?.status || 'Online'}
+          </div>
+          <div className="text-[11px] text-gray-400">Node {health?.system?.nodeVersion || 'v20+'}</div>
+        </div>
+
+        <div className="p-4 bg-white rounded-xl border border-gray-200 shadow-2xs space-y-1">
+          <div className="flex items-center justify-between text-gray-500 text-xs">
+            <span>Database (Neon PostgreSQL)</span>
+            <Database className="w-4 h-4 text-sky-600" />
+          </div>
+          <div className="text-xl font-extrabold text-gray-900 capitalize">
+            {health?.database?.status || 'Healthy'}
+          </div>
+          <div className="text-[11px] text-gray-400">
+            {health?.database?.totalTemplates || safeTemplates.length} Total Templates
+          </div>
+        </div>
+
+        <div className="p-4 bg-white rounded-xl border border-gray-200 shadow-2xs space-y-1">
+          <div className="flex items-center justify-between text-gray-500 text-xs">
+            <span>Gemini AI SDK</span>
+            <Cpu className="w-4 h-4 text-purple-600" />
+          </div>
+          <div className="text-xl font-extrabold text-gray-900">
+            {health?.aiService?.configured ? 'Active' : 'Standby'}
+          </div>
+          <div className="text-[11px] text-gray-400">Model: {health?.aiService?.model || 'gemini-2.5-flash'}</div>
+        </div>
+
+        <div className="p-4 bg-white rounded-xl border border-gray-200 shadow-2xs space-y-1">
+          <div className="flex items-center justify-between text-gray-500 text-xs">
+            <span>Active Live Templates</span>
+            <Layers className="w-4 h-4 text-emerald-600" />
+          </div>
+          <div className="text-xl font-extrabold text-gray-900">
+            {safeTemplates.filter(t => t.status === 'ACTIVE').length} / {safeTemplates.length}
+          </div>
+          <div className="text-[11px] text-gray-400">Available to public students</div>
         </div>
       </div>
 
@@ -279,22 +329,22 @@ export const AdminDashboard: React.FC = () => {
             <p className="text-xs text-gray-500">Daily unique visitors, resume creations, exports, and AI invocations</p>
           </div>
           <span className="text-[11px] text-gray-400">
-            {timeseries.length} data points
+            {safeTimeseries.length} data points
           </span>
         </div>
 
-        {timeseries.length === 0 ? (
+        {safeTimeseries.length === 0 ? (
           <div className="py-12 text-center text-xs text-gray-400">
             No activity recorded in this date range yet.
           </div>
         ) : (
           <div className="space-y-2">
             <div className="flex items-end gap-1 h-36 border-b border-gray-200 pb-1 overflow-x-auto pt-4">
-              {timeseries.map((day, idx) => {
-                const heightPct = Math.max(Math.round((day.visitors / maxDayVisitors) * 100), 8);
-                const isCurrent = idx === timeseries.length - 1;
+              {safeTimeseries.map((day, idx) => {
+                const heightPct = Math.max(Math.round(((day.visitors || 0) / maxDayVisitors) * 100), 8);
+                const isCurrent = idx === safeTimeseries.length - 1;
                 return (
-                  <div key={day.date} className="flex-1 min-w-[20px] flex flex-col items-center group relative">
+                  <div key={day.date || idx} className="flex-1 min-w-[20px] flex flex-col items-center group relative">
                     {/* Tooltip */}
                     <div className="opacity-0 group-hover:opacity-100 transition-opacity absolute bottom-full mb-2 z-20 pointer-events-none bg-gray-900 text-white text-[10px] rounded p-2 shadow-lg whitespace-nowrap">
                       <div className="font-bold">{day.date}</div>
@@ -319,9 +369,9 @@ export const AdminDashboard: React.FC = () => {
             </div>
             {/* Axis labels */}
             <div className="flex justify-between text-[10px] text-gray-400 font-mono">
-              <span>{timeseries[0]?.date}</span>
-              <span>{timeseries[Math.floor(timeseries.length / 2)]?.date}</span>
-              <span>{timeseries[timeseries.length - 1]?.date}</span>
+              <span>{safeTimeseries[0]?.date}</span>
+              <span>{safeTimeseries[Math.floor(safeTimeseries.length / 2)]?.date}</span>
+              <span>{safeTimeseries[safeTimeseries.length - 1]?.date}</span>
             </div>
           </div>
         )}
@@ -337,7 +387,7 @@ export const AdminDashboard: React.FC = () => {
               <p className="text-xs text-gray-500">Telemetry aggregated across 28 templates</p>
             </div>
             <span className="text-xs text-gray-400 font-mono">
-              {templateStats.length} Active Templates
+              {safeTemplateStats.length} Active Records
             </span>
           </div>
 
@@ -354,21 +404,21 @@ export const AdminDashboard: React.FC = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {templateStats.length === 0 ? (
+                {safeTemplateStats.length === 0 ? (
                   <tr>
                     <td colSpan={6} className="px-4 py-8 text-center text-gray-400">
                       No template interactions in this range.
                     </td>
                   </tr>
                 ) : (
-                  templateStats.map(stat => (
+                  safeTemplateStats.map(stat => (
                     <tr key={stat.templateId} className="hover:bg-gray-50/50 font-mono text-[11px]">
                       <td className="px-4 py-2 font-bold text-gray-900">{stat.templateId}</td>
-                      <td className="px-4 py-2 text-center text-gray-600">{stat.views}</td>
-                      <td className="px-4 py-2 text-center text-sky-700 font-semibold">{stat.selections}</td>
-                      <td className="px-4 py-2 text-center text-purple-700">{stat.switches}</td>
-                      <td className="px-4 py-2 text-center text-emerald-700 font-semibold">{stat.pdfExports}</td>
-                      <td className="px-4 py-2 text-right font-bold text-gray-900">{stat.totalUsage}</td>
+                      <td className="px-4 py-2 text-center text-gray-600">{stat.views || 0}</td>
+                      <td className="px-4 py-2 text-center text-sky-700 font-semibold">{stat.selections || 0}</td>
+                      <td className="px-4 py-2 text-center text-purple-700">{stat.switches || 0}</td>
+                      <td className="px-4 py-2 text-center text-emerald-700 font-semibold">{stat.pdfExports || 0}</td>
+                      <td className="px-4 py-2 text-right font-bold text-gray-900">{stat.totalUsage || 0}</td>
                     </tr>
                   ))
                 )}
@@ -448,55 +498,6 @@ export const AdminDashboard: React.FC = () => {
         </div>
       </div>
 
-      {/* System Health Overview Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="p-4 bg-white rounded-xl border border-gray-200 shadow-2xs space-y-1">
-          <div className="flex items-center justify-between text-gray-500 text-xs">
-            <span>API Server</span>
-            <Activity className="w-4 h-4 text-emerald-600" />
-          </div>
-          <div className="text-xl font-extrabold text-gray-900 capitalize">
-            {health?.status || 'Online'}
-          </div>
-          <div className="text-[11px] text-gray-400">Node {health?.system?.nodeVersion || process.version}</div>
-        </div>
-
-        <div className="p-4 bg-white rounded-xl border border-gray-200 shadow-2xs space-y-1">
-          <div className="flex items-center justify-between text-gray-500 text-xs">
-            <span>Database (Neon PostgreSQL)</span>
-            <Database className="w-4 h-4 text-sky-600" />
-          </div>
-          <div className="text-xl font-extrabold text-gray-900 capitalize">
-            {health?.database?.status || 'Healthy'}
-          </div>
-          <div className="text-[11px] text-gray-400">
-            {health?.database?.totalTemplates || templates.length} Total Templates
-          </div>
-        </div>
-
-        <div className="p-4 bg-white rounded-xl border border-gray-200 shadow-2xs space-y-1">
-          <div className="flex items-center justify-between text-gray-500 text-xs">
-            <span>Gemini AI SDK</span>
-            <Cpu className="w-4 h-4 text-purple-600" />
-          </div>
-          <div className="text-xl font-extrabold text-gray-900">
-            {health?.aiService?.configured ? 'Active' : 'Standby'}
-          </div>
-          <div className="text-[11px] text-gray-400">Model: {health?.aiService?.model || 'gemini-2.5-flash'}</div>
-        </div>
-
-        <div className="p-4 bg-white rounded-xl border border-gray-200 shadow-2xs space-y-1">
-          <div className="flex items-center justify-between text-gray-500 text-xs">
-            <span>Active Live Templates</span>
-            <Layers className="w-4 h-4 text-emerald-600" />
-          </div>
-          <div className="text-xl font-extrabold text-gray-900">
-            {templates.filter(t => t.status === 'ACTIVE').length} / {templates.length}
-          </div>
-          <div className="text-[11px] text-gray-400">Available to public students</div>
-        </div>
-      </div>
-
       {/* Upload Reference Section */}
       <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-xs space-y-4">
         <div className="flex items-start justify-between">
@@ -571,7 +572,7 @@ export const AdminDashboard: React.FC = () => {
       <div className="bg-white rounded-xl border border-gray-200 shadow-xs overflow-hidden">
         <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
           <h2 className="text-base font-bold text-gray-900">
-            Template Registry & States ({templates.length} Total)
+            Template Registry & States ({safeTemplates.length} Total)
           </h2>
           <span className="text-xs text-gray-500">Managed via PostgreSQL / Prisma</span>
         </div>
@@ -591,7 +592,7 @@ export const AdminDashboard: React.FC = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {templates.map(t => (
+              {safeTemplates.map(t => (
                 <tr key={t.id} className="hover:bg-gray-50/50">
                   <td className="px-4 py-2.5 font-mono text-[11px] text-gray-500">{t.id}</td>
                   <td className="px-4 py-2.5 font-bold text-gray-900">{t.name}</td>

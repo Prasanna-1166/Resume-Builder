@@ -1,6 +1,7 @@
 import { ResumeData } from '@ai-resume/core';
 
-const rawApiUrl = (import.meta.env.VITE_API_URL || 'https://resume-builder-d18h.onrender.com').replace(/\/$/, '');
+const defaultApiUrl = import.meta.env.DEV ? '' : 'https://resume-builder-d18h.onrender.com';
+const rawApiUrl = (import.meta.env.VITE_API_URL || defaultApiUrl).replace(/\/$/, '');
 const API_BASE = rawApiUrl ? `${rawApiUrl}/api` : '/api';
 
 export const apiClient = {
