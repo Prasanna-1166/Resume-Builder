@@ -78,3 +78,4 @@ uploads/*
 tmp/
 temp/
 *.tmp
+templates/
