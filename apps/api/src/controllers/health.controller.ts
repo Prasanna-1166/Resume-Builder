@@ -13,8 +13,13 @@ export async function getHealth(_req: Request, res: Response): Promise<void> {
       totalTemplates = await prisma.template.count();
       activeTemplates = await prisma.template.count({ where: { status: 'ACTIVE' } });
       pendingTemplates = await prisma.template.count({ where: { status: 'PENDING' } });
-    } catch (e) {
+    } catch (e: any) {
       dbStatus = 'unreachable';
+      const errorName = e?.name || 'DatabaseError';
+      const errorCode = e?.code || 'UNKNOWN';
+      const rawMsg = typeof e?.message === 'string' ? e.message.split('\n')[0] : 'Database connection failed';
+      const sanitizedSummary = rawMsg.replace(/postgresql:\/\/[^@]+@/gi, 'postgresql://***:***@');
+      console.error(`[Database Health Error] Type: ${errorName}, Code: ${errorCode}, Details: ${sanitizedSummary}`);
     }
 
     const memory = process.memoryUsage();
