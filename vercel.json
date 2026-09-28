@@ -1,0 +1,10 @@
+{
+  "buildCommand": "npm run build --workspace=@ai-resume/web",
+  "outputDirectory": "apps/web/dist",
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ]
+}
