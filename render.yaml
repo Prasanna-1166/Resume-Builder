@@ -3,7 +3,7 @@ services:
     name: ai-resume-builder-api
     env: node
     plan: free
-    buildCommand: npm install --include=dev && npm run build --workspace=@ai-resume/core && npm run build --workspace=@ai-resume/api
+    buildCommand: npm install --include=dev && npx prisma generate --schema=apps/api/prisma/schema.prisma && npm run build --workspace=@ai-resume/core && npm run build --workspace=@ai-resume/api
     startCommand: npm run start --workspace=@ai-resume/api
     envVars:
       - key: NODE_ENV
