@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { prisma } from '../config/db';
+import { Template } from '@prisma/client';
 
 export async function listTemplates(req: Request, res: Response): Promise<void> {
   try {
@@ -34,7 +35,7 @@ export async function listTemplates(req: Request, res: Response): Promise<void> 
       take: limit ? parseInt(limit as string) : undefined
     });
 
-    const formatted = templates.map(t => ({
+    const formatted = templates.map((t: Template) => ({
       ...t,
       suitableFor: JSON.parse(t.suitableFor || '[]'),
       tags: JSON.parse(t.tags || '[]')
