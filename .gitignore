@@ -79,3 +79,6 @@ tmp/
 temp/
 *.tmp
 templates/
+templates/
+
+reference-templates/
