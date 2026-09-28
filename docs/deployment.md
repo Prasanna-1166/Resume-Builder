@@ -39,7 +39,7 @@ The AI Resume Builder is architected for zero-maintenance serverless & container
 2. Configure the service settings:
    - **Environment**: `Node`
    - **Root Directory**: Leave blank (monorepo root) or specify `apps/api`
-   - **Build Command**: `npm install && npm run build --workspace=@ai-resume/core && npm run build --workspace=@ai-resume/api`
+   - **Build Command**: `npm install --include=dev && npm run build --workspace=@ai-resume/core && npm run build --workspace=@ai-resume/api`
    - **Start Command**: `npm run start --workspace=@ai-resume/api`
    - **Auto-Deploy**: `Yes` (on push to `main`)
 3. Add Environment Variables on Render:
