@@ -28,8 +28,12 @@ import { TemplateExtra07 } from './items/TemplateExtra07';
 import { TemplateExtra08 } from './items/TemplateExtra08';
 import { TemplateExtra09 } from './items/TemplateExtra09';
 import { TemplateExtra12 } from './items/TemplateExtra12';
+import { TemplateCvAcademic } from './items/TemplateCvAcademic';
+import { TemplateCvProfessional } from './items/TemplateCvProfessional';
+import { TemplateClModern } from './items/TemplateClModern';
+import { TemplateClProfessional } from './items/TemplateClProfessional';
 
-export const TEMPLATE_REGISTRY: Record<string, React.FC<{ data: ResumeData; isPreview?: boolean }>> = {
+export const TEMPLATE_REGISTRY: Record<string, React.FC<{ data: any; isPreview?: boolean }>> = {
   template_01: Template01,
   template_02: Template02,
   template_03: Template03,
@@ -58,8 +62,13 @@ export const TEMPLATE_REGISTRY: Record<string, React.FC<{ data: ResumeData; isPr
   template_extra_08: TemplateExtra08,
   template_extra_09: TemplateExtra09,
   template_extra_12: TemplateExtra12,
+  template_cv_academic: TemplateCvAcademic,
+  template_cv_professional: TemplateCvProfessional,
+  template_cl_modern: TemplateClModern,
+  template_cl_professional: TemplateClProfessional
 };
 
-export function getTemplateComponent(templateId: string): React.FC<{ data: ResumeData; isPreview?: boolean }> {
+export function getTemplateComponent(templateId: string): React.FC<{ data: any; isPreview?: boolean }> {
   return TEMPLATE_REGISTRY[templateId] || Template01;
 }
+

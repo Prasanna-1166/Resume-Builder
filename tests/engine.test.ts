@@ -52,8 +52,9 @@ describe('Core Resume Engine Tests', () => {
     assert.ok(docxBuffer.length > 500, 'DOCX buffer should be non-empty');
   });
 
-  it('should verify all 28 unique templates are cataloged and registered', () => {
-    assert.strictEqual(TEMPLATE_CATALOG.length, 28, `Expected 28 templates in catalog, found ${TEMPLATE_CATALOG.length}`);
+  it('should verify all templates are cataloged and registered', () => {
+    assert.ok(TEMPLATE_CATALOG.length >= 28, `Expected at least 28 templates in catalog, found ${TEMPLATE_CATALOG.length}`);
+    assert.strictEqual(TEMPLATE_CATALOG.length, 32, `Expected 32 templates in catalog, found ${TEMPLATE_CATALOG.length}`);
 
     for (const meta of TEMPLATE_CATALOG) {
       const comp = TEMPLATE_REGISTRY[meta.id];

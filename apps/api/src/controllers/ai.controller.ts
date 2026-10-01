@@ -275,3 +275,206 @@ Extract structured insights in JSON format:
     res.json(getDeterministicJobAnalysis(jobDescription, userSkills));
   }
 }
+
+// -------------------------------------------------------------
+// Cover Letter Generation & Improvement
+// -------------------------------------------------------------
+
+function getDeterministicCoverLetter(payload: {
+  fullName?: string;
+  targetRole?: string;
+  targetCompany?: string;
+  jobDescription?: string;
+  skills?: string[];
+  experienceSnippet?: string;
+}) {
+  const name = payload.fullName || 'Candidate';
+  const role = payload.targetRole || 'Software Engineer';
+  const company = payload.targetCompany || 'Target Organization';
+  const topSkills = (payload.skills || ['full-stack engineering', 'system architecture', 'problem solving']).slice(0, 4).join(', ');
+
+  return {
+    openingParagraph: `I am writing to enthusiastically express my interest in the ${role} position at ${company}. With demonstrated expertise in ${topSkills}, I am eager to leverage my technical skills and problem-solving abilities to contribute to ${company}'s ongoing innovation.`,
+    bodyParagraphs: [
+      `Throughout my career, I have dedicated myself to engineering scalable, maintainable software and collaborating with cross-functional teams to deliver impactful products. ${payload.experienceSnippet ? `Specifically, ${payload.experienceSnippet.slice(0, 200)}.` : 'My experience spans translating complex project requirements into clean, performant architectures.'}`,
+      `I pride myself on continuous learning, meticulous attention to code quality, and delivering user-centric solutions. The opportunity to bring my skills in ${topSkills} to ${company} aligns closely with my career trajectory and dedication to technical excellence.`
+    ],
+    closingParagraph: `Thank you for your time and consideration. I would welcome the opportunity to speak with you further to discuss how my experience and qualifications make me a strong fit for the ${role} role at ${company}.`,
+    signoff: `Sincerely,\n${name}`
+  };
+}
+
+export async function generateCoverLetter(req: Request, res: Response): Promise<void> {
+  const { fullName, targetRole, targetCompany, jobDescription, skills, experienceSnippet } = req.body;
+
+  if (!targetRole || !targetCompany) {
+    res.status(400).json({ error: 'Target role and target company are required.' });
+    return;
+  }
+
+  if (!geminiClient) {
+    res.json(getDeterministicCoverLetter({ fullName, targetRole, targetCompany, jobDescription, skills, experienceSnippet }));
+    return;
+  }
+
+  try {
+    const prompt = `${AI_TRUTHFULNESS_PROMPT}
+
+Task: Generate a professional, compelling cover letter based ONLY on the user's provided profile and the target job description.
+TRUTHFULNESS: NEVER fabricate past employers, fake projects, false degrees, or unmentioned skills.
+
+Target Role: "${targetRole}"
+Target Company: "${targetCompany}"
+Candidate Name: "${fullName || 'Candidate'}"
+Candidate Skills: ${JSON.stringify(skills || [])}
+Experience Snippet: "${(experienceSnippet || '').slice(0, 1000)}"
+Job Description: """${(jobDescription || '').slice(0, 2000)}"""
+
+Output JSON format strictly:
+{
+  "openingParagraph": "Strong opening stating role and enthusiasm...",
+  "bodyParagraphs": [
+    "Body paragraph 1 highlighting relevant candidate experience and skills...",
+    "Body paragraph 2 connecting technical competencies to role requirements..."
+  ],
+  "closingParagraph": "Call to action and professional closing...",
+  "signoff": "Sincerely,\\n${fullName || 'Candidate'}"
+}`;
+
+    const response = await geminiClient.models.generateContent({
+      model: GEMINI_MODEL,
+      contents: prompt,
+      config: {
+        responseMimeType: 'application/json'
+      }
+    });
+
+    const text = response.text || '{}';
+    const parsed = JSON.parse(text);
+    res.json(parsed);
+  } catch (error) {
+    console.warn('Gemini API call failed, using deterministic fallback for cover letter:', error);
+    res.json(getDeterministicCoverLetter({ fullName, targetRole, targetCompany, jobDescription, skills, experienceSnippet }));
+  }
+}
+
+export async function improveCoverLetter(req: Request, res: Response): Promise<void> {
+  const { text, sectionType, targetRole, targetCompany } = req.body;
+
+  if (!text || text.trim().length < 10) {
+    res.status(400).json({ error: 'Cover letter paragraph text is required (min 10 characters).' });
+    return;
+  }
+
+  if (!geminiClient) {
+    res.json({
+      original: text,
+      suggestions: [
+        `With extensive experience aligned with the ${targetRole || 'target'} role at ${targetCompany || 'your organization'}, I have consistently delivered robust solutions while upholding high quality and performance benchmarks.`,
+        `My technical background and track record of collaborative execution enable me to deliver immediate value to ${targetCompany || 'your team'} in advancing key product objectives.`
+      ]
+    });
+    return;
+  }
+
+  try {
+    const prompt = `${AI_TRUTHFULNESS_PROMPT}
+
+Task: Enhance and polish the following cover letter paragraph for tone, clarity, and impact.
+Section Type: ${sectionType || 'body'}
+Target Role: ${targetRole || 'Professional'}
+Target Company: ${targetCompany || 'Company'}
+Original Text: "${text}"
+
+Output JSON format strictly:
+{
+  "suggestions": [
+    "Variation 1 (Professional & Direct)...",
+    "Variation 2 (Impact-oriented & Engaging)..."
+  ]
+}`;
+
+    const response = await geminiClient.models.generateContent({
+      model: GEMINI_MODEL,
+      contents: prompt,
+      config: {
+        responseMimeType: 'application/json'
+      }
+    });
+
+    const parsed = JSON.parse(response.text || '{}');
+    res.json({
+      original: text,
+      suggestions: parsed.suggestions || [text]
+    });
+  } catch (error) {
+    console.warn('Gemini fallback for improveCoverLetter:', error);
+    res.json({
+      original: text,
+      suggestions: [text]
+    });
+  }
+}
+
+// -------------------------------------------------------------
+// Document Tailoring to Job Description
+// -------------------------------------------------------------
+
+export async function tailorDocument(req: Request, res: Response): Promise<void> {
+  const { documentType, documentData, jobDescription, targetRole, targetCompany } = req.body;
+
+  if (!jobDescription || jobDescription.trim().length < 20) {
+    res.status(400).json({ error: 'Job description is required (min 20 characters).' });
+    return;
+  }
+
+  const docSummary = documentData?.summary || '';
+  const skillsList = (documentData?.skills || []).flatMap((s: any) => s.items || []);
+
+  const jobAnalysis = getDeterministicJobAnalysis(jobDescription, skillsList);
+
+  const tailoredSummary = `Results-driven professional targeting the ${targetRole || 'open'} role at ${targetCompany || 'your company'}, combining proven proficiency in ${jobAnalysis.matchedSkills.slice(0, 4).join(', ') || 'modern technologies'} with a commitment to engineering excellence.`;
+
+  res.json({
+    matchScore: Math.min(95, Math.max(50, Math.round((jobAnalysis.matchedSkills.length / Math.max(1, jobAnalysis.requiredSkills.length)) * 100))),
+    matchedKeywords: jobAnalysis.matchedSkills,
+    missingKeywords: jobAnalysis.missingSkills,
+    summarySuggestion: tailoredSummary,
+    recommendedSkillAdditions: jobAnalysis.missingSkills.slice(0, 5),
+    bulletImprovementRecommendations: [
+      'Highlight relevant framework usage in recent project descriptions.',
+      'Incorporate quantified impact metrics for high-priority technical deliverables.'
+    ]
+  });
+}
+
+// -------------------------------------------------------------
+// CV Specific Suggestions
+// -------------------------------------------------------------
+
+export async function suggestCvSections(req: Request, res: Response): Promise<void> {
+  const { category, targetField } = req.body;
+
+  const isAcademic = category === 'ACADEMIC_RESEARCH' || (targetField || '').toLowerCase().includes('academic') || (targetField || '').toLowerCase().includes('research');
+
+  if (isAcademic) {
+    res.json({
+      recommendedSections: [
+        { id: 'research', name: 'Research Experience', description: 'Academic appointments, lab research, and grant-funded investigations.' },
+        { id: 'publications', name: 'Publications', description: 'Peer-reviewed journal articles, conference papers, and preprints.' },
+        { id: 'conferences', name: 'Conferences & Talks', description: 'Invited presentations, poster sessions, and panel discussions.' },
+        { id: 'references', name: 'Academic References', description: 'Faculty advisors, principal investigators, and department chairs.' }
+      ]
+    });
+  } else {
+    res.json({
+      recommendedSections: [
+        { id: 'experience', name: 'Professional Experience', description: 'Detailed career timeline with leadership and execution scope.' },
+        { id: 'projects', name: 'Key Projects & Architecture', description: 'Enterprise initiatives, open-source repositories, and system designs.' },
+        { id: 'certifications', name: 'Certifications & Licensures', description: 'Industry credentials and recognized technical qualifications.' },
+        { id: 'references', name: 'Professional References', description: 'Client leaders, managers, and cross-functional collaborators.' }
+      ]
+    });
+  }
+}
+

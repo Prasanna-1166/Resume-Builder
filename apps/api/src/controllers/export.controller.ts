@@ -1,22 +1,28 @@
 import { Request, Response } from 'express';
-import { generateDocxBlob, ResumeData } from '@ai-resume/core';
+import { generateDocxBlob, generateCoverLetterDocxBlob, ResumeData, CoverLetterData } from '@ai-resume/core';
 
 export async function exportDocx(req: Request, res: Response): Promise<void> {
   try {
-    const resumeData: ResumeData = req.body?.resumeData || req.body;
+    const docData: any = req.body?.resumeData || req.body?.coverLetterData || req.body;
 
-    if (!resumeData || !resumeData.personalInfo) {
-      res.status(400).json({ error: 'Valid ResumeData object is required for DOCX export.' });
+    if (!docData || !docData.personalInfo) {
+      res.status(400).json({ error: 'Valid document object is required for DOCX export.' });
       return;
     }
 
-    const docxBuffer = await generateDocxBlob(resumeData);
-    const candidateName = resumeData.personalInfo.fullName
-      ? resumeData.personalInfo.fullName.replace(/[^a-zA-Z0-9_-]/g, '_')
-      : 'Resume';
+    const isCoverLetter = docData.documentType === 'COVER_LETTER';
+    const docxBuffer = isCoverLetter
+      ? await generateCoverLetterDocxBlob(docData as CoverLetterData)
+      : await generateDocxBlob(docData as ResumeData);
+
+    const candidateName = docData.personalInfo.fullName
+      ? docData.personalInfo.fullName.replace(/[^a-zA-Z0-9_-]/g, '_')
+      : 'Document';
+
+    const fileSuffix = isCoverLetter ? 'Cover_Letter' : (docData.documentType === 'CV' ? 'CV' : 'Resume');
 
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
-    res.setHeader('Content-Disposition', `attachment; filename="${candidateName}_Resume.docx"`);
+    res.setHeader('Content-Disposition', `attachment; filename="${candidateName}_${fileSuffix}.docx"`);
     res.send(docxBuffer);
   } catch (error) {
     console.error('Export DOCX error:', error);

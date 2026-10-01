@@ -1,8 +1,8 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { TEMPLATE_CATALOG, TemplateMetadata } from '@ai-resume/templates';
+import { TEMPLATE_CATALOG, TemplateMetadata, getTemplateComponent } from '@ai-resume/templates';
 import { useResume } from '../../context/ResumeContext';
-import { Search, Filter, Eye, Check, X, Sparkles, Layers } from 'lucide-react';
-import { getTemplateComponent } from '@ai-resume/templates';
+import { DocumentType } from '@ai-resume/core';
+import { Search, Filter, Eye, Check, X, Sparkles, Layers, FileText, CheckCircle2 } from 'lucide-react';
 import { track } from '../../services/analytics';
 
 interface TemplateGalleryProps {
@@ -10,123 +10,155 @@ interface TemplateGalleryProps {
 }
 
 export const TemplateGallery: React.FC<TemplateGalleryProps> = ({ onSelectTemplate }) => {
-  const { resumeData, setTemplate } = useResume();
+  const { activeDocument, setTemplate, createDocument } = useResume();
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedDocType, setSelectedDocType] = useState<'ALL' | DocumentType>('ALL');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [selectedPageSize, setSelectedPageSize] = useState<string>('all');
-  const [selectedArchetype, setSelectedArchetype] = useState<string>('all');
   const [previewTemplate, setPreviewTemplate] = useState<TemplateMetadata | null>(null);
 
   useEffect(() => {
     track('PAGE_VIEW', { metadata: { page: 'gallery' } });
   }, []);
 
+  const docTypeTabs = [
+    { id: 'ALL', label: 'All Templates', count: TEMPLATE_CATALOG.length },
+    { id: 'RESUME', label: 'Resumes (28)', count: TEMPLATE_CATALOG.filter(t => (t.documentType || 'RESUME') === 'RESUME').length },
+    { id: 'CV', label: 'Curriculum Vitae (2)', count: TEMPLATE_CATALOG.filter(t => t.documentType === 'CV').length },
+    { id: 'COVER_LETTER', label: 'Cover Letters (2)', count: TEMPLATE_CATALOG.filter(t => t.documentType === 'COVER_LETTER').length }
+  ];
+
   const categories = [
-    { id: 'all', label: 'All Templates' },
-    { id: 'technical', label: 'Technical / SWE' },
-    { id: 'student', label: 'Student / Campus' },
-    { id: 'executive', label: 'Executive & PM' },
-    { id: 'academic', label: 'Academic & Quant' },
-    { id: 'creative', label: 'Creative & Docs' },
-    { id: 'general', label: 'General & Operations' },
+    { id: 'all', label: 'All Domains' },
+    { id: 'technical', label: 'Software / Engineering' },
+    { id: 'student', label: 'Student / Fresher' },
+    { id: 'executive', label: 'Leadership & PM' },
+    { id: 'academic', label: 'Academic & Research' },
+    { id: 'creative', label: 'Creative & Writing' },
+    { id: 'general', label: 'Corporate & Ops' }
   ];
 
   const filteredTemplates = useMemo(() => {
     return TEMPLATE_CATALOG.filter(t => {
-      // Search
+      const docType = t.documentType || 'RESUME';
+      const matchesDocType = selectedDocType === 'ALL' || docType === selectedDocType;
+
       const matchesSearch =
         searchQuery === '' ||
         t.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         t.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
         t.tags.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase()));
 
-      // Category
       const matchesCategory = selectedCategory === 'all' || t.category === selectedCategory;
-
-      // Page size
       const matchesPageSize = selectedPageSize === 'all' || t.pageSize === selectedPageSize;
 
-      // Archetype
-      const matchesArchetype =
-        selectedArchetype === 'all' || t.suitableFor.includes(selectedArchetype as any);
-
-      return matchesSearch && matchesCategory && matchesPageSize && matchesArchetype;
+      return matchesDocType && matchesSearch && matchesCategory && matchesPageSize;
     });
-  }, [searchQuery, selectedCategory, selectedPageSize, selectedArchetype]);
+  }, [searchQuery, selectedDocType, selectedCategory, selectedPageSize]);
 
   const handleApplyTemplate = (templateId: string) => {
     track('TEMPLATE_SELECTED', { templateId, metadata: { source: 'gallery_card' } });
-    setTemplate(templateId);
+    const targetMeta = TEMPLATE_CATALOG.find(t => t.id === templateId);
+    const targetDocType = targetMeta?.documentType || 'RESUME';
+
+    // If switching between different document types, automatically align active document
+    if (activeDocument.documentType !== targetDocType) {
+      createDocument(targetDocType, 'STUDENT', templateId, `${targetMeta?.name || 'New'} Document`);
+    } else {
+      setTemplate(templateId);
+    }
     onSelectTemplate(templateId);
   };
-
-  const handlePreviewTemplate = (template: TemplateMetadata) => {
-    track('TEMPLATE_VIEW', { templateId: template.id });
-    setPreviewTemplate(template);
-  };
-
-  const PreviewComponent = previewTemplate ? getTemplateComponent(previewTemplate.id) : null;
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       {/* Header */}
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Resume Template Gallery</h1>
-        <p className="text-sm text-gray-600 mt-1">
-          Explore all {TEMPLATE_CATALOG.length} verified ATS-compliant designs. All templates automatically format your existing resume data with 100% fidelity.
+      <div className="text-center max-w-3xl mx-auto mb-8">
+        <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-indigo-50 text-indigo-700 mb-3 border border-indigo-100">
+          <Sparkles className="w-3.5 h-3.5 text-indigo-600" />
+          <span>Professional Template Library ({TEMPLATE_CATALOG.length} Standard Designs)</span>
+        </div>
+        <h1 className="text-3xl sm:text-4xl font-extrabold text-gray-900 tracking-tight">
+          Find the Perfect Layout for Your Career Stage
+        </h1>
+        <p className="mt-2 text-sm sm:text-base text-gray-600">
+          Every layout is engineered with strict ATS-parsing typography, clean section hierarchy, and zero-column truncation.
         </p>
+
+        {/* Quick Discovery Tags */}
+        <div className="flex flex-wrap justify-center gap-1.5 mt-4">
+          <span className="text-xs text-gray-400 self-center mr-1">Quick Search:</span>
+          {[
+            { label: 'Fresher Placement', type: 'RESUME', query: 'Fresher' },
+            { label: 'Academic CV', type: 'CV', query: 'Academic' },
+            { label: 'Software Engineer', type: 'RESUME', query: 'Developer' },
+            { label: 'Tech Cover Letter', type: 'COVER_LETTER', query: 'Cover Letter' }
+          ].map((tag, idx) => (
+            <button
+              key={idx}
+              onClick={() => {
+                setSelectedDocType(tag.type as any);
+                setSearchQuery(tag.query);
+              }}
+              className="text-xs bg-white hover:bg-indigo-50 text-slate-700 hover:text-indigo-700 border border-slate-200 px-2.5 py-1 rounded-full transition-all"
+            >
+              {tag.label}
+            </button>
+          ))}
+        </div>
       </div>
 
-      {/* Search and Filters Bar */}
-      <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-xs mb-8 space-y-3">
-        <div className="flex flex-col sm:flex-row gap-3">
-          {/* Search Input */}
-          <div className="relative flex-1">
-            <Search className="w-4 h-4 absolute left-3 top-3 text-gray-400" />
-            <input
-              type="text"
-              placeholder="Search templates by name, skill, or style (e.g., Deedy, IIT, Minimalist, Java)..."
-              value={searchQuery}
-              onChange={e => setSearchQuery(e.target.value)}
-              className="w-full pl-9 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:bg-white transition-all"
-            />
-          </div>
+      {/* Document Type Selector Tabs */}
+      <div className="flex justify-center mb-6">
+        <div className="inline-flex p-1 bg-slate-100 rounded-xl gap-1 overflow-x-auto max-w-full">
+          {docTypeTabs.map(tab => (
+            <button
+              key={tab.id}
+              onClick={() => setSelectedDocType(tab.id as any)}
+              className={`px-4 py-2 rounded-lg text-xs sm:text-sm font-semibold whitespace-nowrap transition-all ${
+                selectedDocType === tab.id
+                  ? 'bg-white text-indigo-700 shadow-sm'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+      </div>
 
-          {/* Page Size Filter */}
-          <select
-            value={selectedPageSize}
-            onChange={e => setSelectedPageSize(e.target.value)}
-            className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-xs font-medium text-gray-700 focus:outline-none focus:ring-2 focus:ring-sky-500"
-          >
-            <option value="all">Page Size: All</option>
-            <option value="letter">US Letter (8.5 x 11 in)</option>
-            <option value="a4">A4 (210 x 297 mm)</option>
-          </select>
-
-          {/* Archetype Filter */}
-          <select
-            value={selectedArchetype}
-            onChange={e => setSelectedArchetype(e.target.value)}
-            className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-xs font-medium text-gray-700 focus:outline-none focus:ring-2 focus:ring-sky-500"
-          >
-            <option value="all">Target: All Profiles</option>
-            <option value="student">Student</option>
-            <option value="fresher">Fresher</option>
-            <option value="technical">Technical / Engineering</option>
-            <option value="non-technical">Non-Technical / PM</option>
-          </select>
+      {/* Filter Controls Bar */}
+      <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-2xs mb-8 flex flex-col md:flex-row gap-4 items-center justify-between">
+        {/* Search */}
+        <div className="relative w-full md:w-80">
+          <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+          <input
+            type="text"
+            placeholder="Search by keywords, tags, style..."
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+            className="w-full pl-9 pr-4 py-2 text-xs sm:text-sm bg-gray-50 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          />
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery('')}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          )}
         </div>
 
-        {/* Category Pills */}
-        <div className="flex flex-wrap gap-1.5 pt-2 border-t border-gray-100">
+        {/* Category Filter Chips */}
+        <div className="flex items-center gap-1.5 overflow-x-auto w-full md:w-auto pb-1 md:pb-0">
           {categories.map(cat => (
             <button
               key={cat.id}
               onClick={() => setSelectedCategory(cat.id)}
-              className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-colors ${
                 selectedCategory === cat.id
-                  ? 'bg-sky-600 text-white shadow-xs'
-                  : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
+                  ? 'bg-indigo-600 text-white shadow-2xs'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
               }`}
             >
               {cat.label}
@@ -135,135 +167,152 @@ export const TemplateGallery: React.FC<TemplateGalleryProps> = ({ onSelectTempla
         </div>
       </div>
 
-      {/* Templates Grid */}
-      {filteredTemplates.length === 0 ? (
-        <div className="text-center py-16 bg-white rounded-xl border border-gray-200">
-          <Layers className="w-10 h-10 text-gray-400 mx-auto mb-3" />
-          <h3 className="text-base font-semibold text-gray-800">No matching templates found</h3>
-          <p className="text-xs text-gray-500 mt-1">Try broadening your search query or reset filters.</p>
-          <button
-            onClick={() => {
-              setSearchQuery('');
-              setSelectedCategory('all');
-              setSelectedPageSize('all');
-              setSelectedArchetype('all');
-            }}
-            className="mt-4 px-4 py-2 bg-sky-50 text-sky-700 hover:bg-sky-100 rounded-md text-xs font-semibold"
-          >
-            Reset All Filters
-          </button>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredTemplates.map(template => {
-            const isCurrent = resumeData.templateId === template.id;
-            return (
-              <div
-                key={template.id}
-                className={`bg-white rounded-xl border overflow-hidden transition-all flex flex-col justify-between ${
-                  isCurrent ? 'border-sky-500 ring-2 ring-sky-200 shadow-sm' : 'border-gray-200 hover:shadow-md'
-                }`}
-              >
-                {/* Card Top */}
-                <div className="p-5 border-b border-gray-100">
-                  <div className="flex justify-between items-start mb-2">
-                    <span className="px-2 py-0.5 rounded text-[11px] font-semibold bg-gray-100 text-gray-700 uppercase">
-                      {template.category}
+      {/* Results Count */}
+      <div className="mb-4 flex items-center justify-between text-xs text-gray-500 font-medium">
+        <span>Showing {filteredTemplates.length} matching templates</span>
+        {activeDocument && (
+          <span className="text-indigo-600">
+            Current Document Template: <strong>{activeDocument.templateId}</strong>
+          </span>
+        )}
+      </div>
+
+      {/* Template Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {filteredTemplates.map(template => {
+          const isCurrent = activeDocument.templateId === template.id;
+          const docType = template.documentType || 'RESUME';
+
+          return (
+            <div
+              key={template.id}
+              className={`bg-white rounded-2xl border transition-all duration-200 overflow-hidden flex flex-col justify-between group shadow-sm hover:shadow-md ${
+                isCurrent
+                  ? 'border-indigo-600 ring-2 ring-indigo-600/20'
+                  : 'border-gray-200 hover:border-gray-300'
+              }`}
+            >
+              {/* Card Header & Preview Placeholder Box */}
+              <div className="p-5 flex-1 flex flex-col">
+                <div className="flex items-center justify-between gap-2 mb-3">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 border border-slate-200">
+                      {docType === 'COVER_LETTER' ? 'Cover Letter' : docType}
                     </span>
-                    <div className="flex items-center gap-1.5 text-[11px] font-mono text-gray-500 uppercase">
-                      <span>{template.pageSize}</span>
-                      <span>•</span>
-                      <span>{template.columns} Col</span>
-                    </div>
+                    <span className="text-[10px] font-medium text-gray-500 bg-gray-50 px-2 py-0.5 rounded-full border border-gray-200">
+                      {template.pageSize.toUpperCase()}
+                    </span>
                   </div>
+                  {template.isPopular && (
+                    <span className="bg-amber-100 text-amber-800 text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
+                      <Sparkles className="w-2.5 h-2.5" /> Popular
+                    </span>
+                  )}
+                </div>
 
-                  <h3 className="font-bold text-gray-900 text-base flex items-center gap-2">
-                    <span>{template.name}</span>
-                    {template.isPopular && (
-                      <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-amber-50 text-amber-700 text-[10px] font-semibold">
-                        <Sparkles className="w-2.5 h-2.5" />
-                        Popular
-                      </span>
-                    )}
-                  </h3>
+                <h3 className="text-base font-bold text-gray-900 mb-1 group-hover:text-indigo-600 transition-colors">
+                  {template.name}
+                </h3>
+                <p className="text-xs text-gray-600 line-clamp-2 leading-relaxed mb-4">
+                  {template.description}
+                </p>
 
-                  <p className="text-xs text-gray-600 mt-1.5 line-clamp-2 leading-relaxed">
-                    {template.description}
-                  </p>
-
-                  <div className="mt-3 flex flex-wrap gap-1">
-                    {template.tags.slice(0, 3).map((tag, idx) => (
-                      <span key={idx} className="px-2 py-0.5 rounded bg-gray-50 text-gray-600 text-[10px] font-medium border border-gray-100">
-                        {tag}
-                      </span>
-                    ))}
+                {/* Micro Visual Card Preview */}
+                <div
+                  className="w-full h-44 bg-slate-50 border border-slate-200 rounded-xl overflow-hidden relative cursor-pointer group-hover:border-indigo-300 transition-all flex items-center justify-center mb-4"
+                  onClick={() => setPreviewTemplate(template)}
+                >
+                  <div className="transform scale-[0.26] origin-top pointer-events-none opacity-90 w-[800px] h-[1000px] bg-white p-4">
+                    {React.createElement(getTemplateComponent(template.id), { data: activeDocument, isPreview: true })}
+                  </div>
+                  <div className="absolute inset-0 bg-slate-900/10 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                    <span className="bg-white/95 text-slate-900 text-xs font-bold px-3 py-1.5 rounded-lg shadow-md flex items-center gap-1.5">
+                      <Eye className="w-3.5 h-3.5" /> Quick Preview
+                    </span>
                   </div>
                 </div>
 
-                {/* Card Bottom Actions */}
-                <div className="p-4 bg-gray-50/50 flex items-center justify-between gap-2 border-t border-gray-100">
-                  <button
-                    onClick={() => handlePreviewTemplate(template)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium text-gray-700 hover:bg-gray-200 bg-gray-100 transition-colors"
-                  >
-                    <Eye className="w-3.5 h-3.5 text-gray-500" />
-                    <span>Quick Preview</span>
-                  </button>
-
-                  <button
-                    onClick={() => handleApplyTemplate(template.id)}
-                    className={`flex items-center gap-1.5 px-4 py-1.5 rounded-md text-xs font-semibold shadow-xs transition-colors ${
-                      isCurrent
-                        ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
-                        : 'bg-sky-600 hover:bg-sky-700 text-white'
-                    }`}
-                  >
-                    {isCurrent && <Check className="w-3.5 h-3.5" />}
-                    <span>{isCurrent ? 'Active Template' : 'Use Template'}</span>
-                  </button>
+                {/* Tags */}
+                <div className="flex flex-wrap gap-1 mt-auto">
+                  {template.tags.slice(0, 3).map((tag, idx) => (
+                    <span
+                      key={idx}
+                      className="text-[10px] text-gray-500 bg-gray-100 px-2 py-0.5 rounded-md font-medium"
+                    >
+                      {tag}
+                    </span>
+                  ))}
                 </div>
               </div>
-            );
-          })}
-        </div>
-      )}
 
-      {/* Quick Preview Modal */}
-      {previewTemplate && PreviewComponent && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] flex flex-col overflow-hidden animate-in fade-in zoom-in duration-150">
+              {/* Action Buttons */}
+              <div className="p-4 bg-gray-50 border-t border-gray-100 flex items-center gap-2">
+                <button
+                  onClick={() => setPreviewTemplate(template)}
+                  className="flex-1 py-2 bg-white hover:bg-gray-100 text-gray-700 border border-gray-300 rounded-xl text-xs font-semibold transition-colors flex items-center justify-center gap-1.5"
+                >
+                  <Eye className="w-3.5 h-3.5 text-gray-500" />
+                  <span>Full Preview</span>
+                </button>
+
+                <button
+                  onClick={() => handleApplyTemplate(template.id)}
+                  className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 shadow-xs ${
+                    isCurrent
+                      ? 'bg-emerald-600 text-white'
+                      : 'bg-indigo-600 hover:bg-indigo-700 text-white'
+                  }`}
+                >
+                  {isCurrent ? (
+                    <>
+                      <Check className="w-3.5 h-3.5" />
+                      <span>Active</span>
+                    </>
+                  ) : (
+                    <span>Use Template</span>
+                  )}
+                </button>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Full Screen Live Preview Modal */}
+      {previewTemplate && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full h-[90vh] flex flex-col overflow-hidden border border-slate-200">
             {/* Modal Header */}
-            <div className="flex justify-between items-center px-6 py-4 border-b border-gray-200 bg-gray-50">
+            <div className="p-4 border-b border-gray-200 flex items-center justify-between bg-gray-50">
               <div>
-                <h3 className="font-bold text-gray-900 text-lg">{previewTemplate.name}</h3>
+                <h3 className="font-bold text-gray-900 text-base">{previewTemplate.name}</h3>
                 <p className="text-xs text-gray-500">
-                  {previewTemplate.category.toUpperCase()} • {previewTemplate.pageSize.toUpperCase()} • {previewTemplate.columns} Column
+                  {previewTemplate.description} • {previewTemplate.pageSize.toUpperCase()} format
                 </p>
               </div>
-
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2">
                 <button
                   onClick={() => {
                     handleApplyTemplate(previewTemplate.id);
                     setPreviewTemplate(null);
                   }}
-                  className="px-4 py-1.5 bg-sky-600 hover:bg-sky-700 text-white rounded-md text-xs font-semibold shadow-xs"
+                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold shadow-xs transition-colors"
                 >
-                  Apply & Open Editor
+                  Apply Template
                 </button>
                 <button
                   onClick={() => setPreviewTemplate(null)}
-                  className="p-1.5 rounded-md text-gray-500 hover:bg-gray-200"
+                  className="p-1.5 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-200"
                 >
                   <X className="w-5 h-5" />
                 </button>
               </div>
             </div>
 
-            {/* Modal Preview Body */}
-            <div className="p-6 overflow-y-auto bg-gray-100 flex justify-center">
-              <div className="transform scale-90 origin-top shadow-md rounded overflow-hidden">
-                <PreviewComponent data={resumeData} isPreview={true} />
+            {/* Modal Body Canvas */}
+            <div className="flex-1 bg-gray-200 p-6 overflow-auto flex justify-center items-start">
+              <div className="shadow-2xl rounded-sm max-w-2xl w-full">
+                {React.createElement(getTemplateComponent(previewTemplate.id), { data: activeDocument })}
               </div>
             </div>
           </div>

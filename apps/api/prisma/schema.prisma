@@ -21,6 +21,8 @@ model Template {
   id              String   @id // e.g. "template_01"
   name            String
   category        String   // "technical", "student", "executive", "academic", "creative", "general"
+  documentType    String   @default("RESUME") // "RESUME", "CV", "COVER_LETTER"
+  categoryCompatibility String @default("[]") // JSON string e.g. '["FRESHER","STUDENT"]'
   pageSize        String   @default("letter") // "letter" or "a4"
   columns         Int      @default(1)
   description     String

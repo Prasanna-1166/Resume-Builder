@@ -71,17 +71,20 @@ export const CertificationItemSchema = z.object({
 
 export const ResumeDataSchema = z.object({
   id: z.string(),
-  title: z.string(),
+  title: z.string().optional(),
+  documentType: z.enum(['RESUME', 'CV']).optional(),
+  category: z.string().optional(),
   targetRole: z.string().optional(),
-  updatedAt: z.string(),
-  templateId: z.string(),
+  targetCompany: z.string().optional(),
+  updatedAt: z.string().optional(),
+  templateId: z.string().optional(),
   personalInfo: PersonalInfoSchema,
   summary: z.string().optional(),
   education: z.array(EducationItemSchema),
   experience: z.array(ExperienceItemSchema),
   projects: z.array(ProjectItemSchema),
   skills: z.array(SkillCategorySchema),
-  certifications: z.array(CertificationItemSchema),
+  certifications: z.array(CertificationItemSchema).or(z.array(z.string())),
   achievements: z.array(z.object({
     id: z.string(),
     title: z.string(),
@@ -95,6 +98,33 @@ export const ResumeDataSchema = z.object({
     date: z.string().optional(),
     url: z.string().optional(),
     description: z.string().optional()
+  })).optional(),
+  research: z.array(z.object({
+    id: z.string(),
+    title: z.string(),
+    institution: z.string(),
+    advisor: z.string().optional(),
+    startDate: z.string().optional(),
+    endDate: z.string().optional(),
+    bullets: z.array(z.string()).optional()
+  })).optional(),
+  conferences: z.array(z.object({
+    id: z.string(),
+    title: z.string().optional(),
+    conferenceName: z.string().optional(),
+    name: z.string().optional(),
+    date: z.string().optional(),
+    location: z.string().optional(),
+    role: z.string().optional()
+  })).optional(),
+  references: z.array(z.object({
+    id: z.string(),
+    name: z.string(),
+    title: z.string().optional(),
+    institutionOrCompany: z.string().optional(),
+    organization: z.string().optional(),
+    email: z.string().optional(),
+    phone: z.string().optional()
   })).optional(),
   activities: z.array(z.object({
     id: z.string(),
@@ -114,6 +144,7 @@ export const ResumeDataSchema = z.object({
     heading: z.string(),
     bullets: z.array(z.string())
   })).optional(),
-  sectionVisibility: z.record(z.boolean()),
-  sectionOrder: z.array(z.string())
+  sectionVisibility: z.record(z.boolean()).optional(),
+  sectionOrder: z.array(z.string()).optional(),
+  versions: z.array(z.any()).optional()
 });

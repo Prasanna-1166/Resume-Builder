@@ -438,3 +438,251 @@ export async function generateDocxBlob(data: ResumeData): Promise<Buffer> {
 
   return await Packer.toBuffer(doc);
 }
+
+import { CoverLetterData } from './coverLetter.js';
+
+export async function generateCoverLetterDocxBlob(data: CoverLetterData): Promise<Buffer> {
+  const children: any[] = [];
+
+  // Sender Header
+  children.push(
+    new Paragraph({
+      alignment: AlignmentType.LEFT,
+      spacing: { after: 40 },
+      children: [
+        new TextRun({
+          text: data.personalInfo.fullName || 'Sender Name',
+          bold: true,
+          size: 28, // 14pt
+          font: 'Arial',
+          color: '0F172A'
+        })
+      ]
+    })
+  );
+
+  if (data.personalInfo.professionalTitle) {
+    children.push(
+      new Paragraph({
+        spacing: { after: 60 },
+        children: [
+          new TextRun({
+            text: data.personalInfo.professionalTitle,
+            size: 20,
+            font: 'Arial',
+            color: '64748B'
+          })
+        ]
+      })
+    );
+  }
+
+  const contactPieces = [
+    data.personalInfo.email,
+    data.personalInfo.phone,
+    data.personalInfo.location,
+    data.personalInfo.linkedin
+  ].filter(Boolean);
+
+  if (contactPieces.length > 0) {
+    children.push(
+      new Paragraph({
+        spacing: { after: 200 },
+        border: {
+          bottom: {
+            color: 'E2E8F0',
+            space: 4,
+            style: BorderStyle.SINGLE,
+            size: 6
+          }
+        },
+        children: [
+          new TextRun({
+            text: contactPieces.join(' | '),
+            size: 18,
+            font: 'Arial',
+            color: '475569'
+          })
+        ]
+      })
+    );
+  }
+
+  // Date
+  children.push(
+    new Paragraph({
+      spacing: { before: 120, after: 120 },
+      children: [
+        new TextRun({
+          text: data.date || new Date().toLocaleDateString(),
+          size: 20,
+          font: 'Arial',
+          color: '334155'
+        })
+      ]
+    })
+  );
+
+  // Recipient details
+  if (data.recipient) {
+    const recipientLines = [
+      data.recipient.name,
+      data.recipient.title,
+      data.recipient.company,
+      data.recipient.department,
+      data.recipient.address,
+      data.recipient.cityStateZip
+    ].filter(Boolean);
+
+    recipientLines.forEach(line => {
+      children.push(
+        new Paragraph({
+          spacing: { after: 20 },
+          children: [
+            new TextRun({
+              text: line as string,
+              size: 20,
+              font: 'Arial',
+              color: '1E293B'
+            })
+          ]
+        })
+      );
+    });
+  }
+
+  // Subject Line
+  if (data.jobTitle) {
+    children.push(
+      new Paragraph({
+        spacing: { before: 180, after: 140 },
+        children: [
+          new TextRun({
+            text: `RE: Application for ${data.jobTitle} - ${data.targetCompany || ''}`,
+            bold: true,
+            size: 20,
+            font: 'Arial',
+            color: '0F172A'
+          })
+        ]
+      })
+    );
+  }
+
+  // Greeting
+  children.push(
+    new Paragraph({
+      spacing: { before: 120, after: 120 },
+      children: [
+        new TextRun({
+          text: data.greeting || 'Dear Hiring Manager,',
+          size: 20,
+          font: 'Arial',
+          color: '1E293B'
+        })
+      ]
+    })
+  );
+
+  // Opening Paragraph
+  if (data.openingParagraph) {
+    children.push(
+      new Paragraph({
+        spacing: { after: 120 },
+        children: [
+          new TextRun({
+            text: data.openingParagraph,
+            size: 20,
+            font: 'Arial',
+            color: '334155'
+          })
+        ]
+      })
+    );
+  }
+
+  // Body Paragraphs
+  (data.bodyParagraphs || []).forEach(p => {
+    children.push(
+      new Paragraph({
+        spacing: { after: 120 },
+        children: [
+          new TextRun({
+            text: p,
+            size: 20,
+            font: 'Arial',
+            color: '334155'
+          })
+        ]
+      })
+    );
+  });
+
+  // Closing Paragraph
+  if (data.closingParagraph) {
+    children.push(
+      new Paragraph({
+        spacing: { after: 180 },
+        children: [
+          new TextRun({
+            text: data.closingParagraph,
+            size: 20,
+            font: 'Arial',
+            color: '334155'
+          })
+        ]
+      })
+    );
+  }
+
+  // Signoff & Signature
+  children.push(
+    new Paragraph({
+      spacing: { before: 80, after: 60 },
+      children: [
+        new TextRun({
+          text: data.signoff || 'Sincerely,',
+          size: 20,
+          font: 'Arial',
+          color: '1E293B'
+        })
+      ]
+    })
+  );
+
+  children.push(
+    new Paragraph({
+      spacing: { after: 40 },
+      children: [
+        new TextRun({
+          text: data.personalInfo.fullName || '',
+          bold: true,
+          size: 20,
+          font: 'Arial',
+          color: '0F172A'
+        })
+      ]
+    })
+  );
+
+  const coverDoc = new Document({
+    sections: [
+      {
+        properties: {
+          page: {
+            margin: {
+              top: 1080, // 0.75 inch
+              right: 1080,
+              bottom: 1080,
+              left: 1080
+            }
+          }
+        },
+        children
+      }
+    ]
+  });
+
+  return await Packer.toBuffer(coverDoc);
+}
+

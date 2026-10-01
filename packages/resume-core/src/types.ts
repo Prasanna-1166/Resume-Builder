@@ -101,10 +101,44 @@ export interface CustomSectionItem {
   bullets: string[];
 }
 
+import { DocumentType, DocumentCategory, DocumentVersionSnapshot } from './categories';
+import { CoverLetterData } from './coverLetter';
+
+export interface ReferenceItem {
+  id: string;
+  name: string;
+  title: string;
+  institutionOrCompany: string;
+  email?: string;
+  phone?: string;
+}
+
+export interface ConferenceItem {
+  id: string;
+  title: string;
+  conferenceName: string;
+  date?: string;
+  location?: string;
+  role?: 'Speaker' | 'Presenter' | 'Organizer' | 'Attendee';
+}
+
+export interface ResearchItem {
+  id: string;
+  title: string;
+  institution: string;
+  advisor?: string;
+  startDate?: string;
+  endDate?: string;
+  bullets: string[];
+}
+
 export interface ResumeData {
   id: string;
   title: string;
+  documentType?: 'RESUME' | 'CV';
+  category?: DocumentCategory;
   targetRole?: string;
+  targetCompany?: string;
   updatedAt: string;
   templateId: string;
   
@@ -117,6 +151,9 @@ export interface ResumeData {
   certifications: CertificationItem[];
   achievements?: AchievementItem[];
   publications?: PublicationItem[];
+  research?: ResearchItem[];
+  conferences?: ConferenceItem[];
+  references?: ReferenceItem[];
   activities?: ActivityItem[];
   languages?: LanguageItem[];
   customSections?: CustomSectionItem[];
@@ -131,14 +168,20 @@ export interface ResumeData {
     certifications: boolean;
     achievements: boolean;
     publications: boolean;
+    research?: boolean;
+    conferences?: boolean;
+    references?: boolean;
     activities: boolean;
     languages: boolean;
     customSections: boolean;
-    [key: string]: boolean;
+    [key: string]: boolean | undefined;
   };
 
   sectionOrder: string[];
+  versions?: DocumentVersionSnapshot[];
 }
+
+export type CareerDocument = (ResumeData & { documentType?: 'RESUME' | 'CV' }) | CoverLetterData;
 
 export interface CompletenessItem {
   key: string;

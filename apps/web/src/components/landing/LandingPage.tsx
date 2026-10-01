@@ -207,6 +207,12 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             <span className="font-bold text-gray-200">AI Resume Builder</span> — Free open productivity tool for students and job seekers worldwide.
           </div>
           <div className="flex items-center gap-6">
+            <a
+              href="/admin"
+              className="text-gray-400 hover:text-white transition-colors"
+            >
+              Admin Portal
+            </a>
             <span className="text-gray-500">v1.0.0</span>
           </div>
         </div>

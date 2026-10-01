@@ -1,7 +1,11 @@
+import { DocumentType, DocumentCategory } from '@ai-resume/core';
+
 export interface TemplateMetadata {
   id: string;
   name: string;
+  documentType?: DocumentType;
   category: 'technical' | 'student' | 'executive' | 'academic' | 'creative' | 'general';
+  categoryCompatibility?: DocumentCategory[];
   pageSize: 'letter' | 'a4';
   columns: 1 | 2;
   description: string;
@@ -11,9 +15,10 @@ export interface TemplateMetadata {
   colorScheme: string;
   fontFamily: 'sans' | 'serif' | 'mono';
   isPopular?: boolean;
+  version?: string;
 }
 
-export const TEMPLATE_CATALOG: TemplateMetadata[] = [
+const RAW_TEMPLATE_CATALOG: TemplateMetadata[] = [
   {
     id: 'template_01',
     name: 'Minimal Tech Clean',
@@ -387,5 +392,78 @@ export const TEMPLATE_CATALOG: TemplateMetadata[] = [
     referenceSource: 'ATS resume 12.pdf',
     colorScheme: 'Charcoal Black (#1F2937)',
     fontFamily: 'sans'
+  },
+  {
+    id: 'template_cv_academic',
+    name: 'Academic & Scholar CV',
+    documentType: 'CV',
+    category: 'academic',
+    categoryCompatibility: ['ACADEMIC_RESEARCH', 'STUDENT', 'CUSTOM'],
+    pageSize: 'a4',
+    columns: 1,
+    description: 'Comprehensive academic curriculum vitae with research appointments, peer-reviewed publications, grants, and scholarly references.',
+    suitableFor: ['student', 'fresher', 'technical', 'general'],
+    tags: ['Academic CV', 'Research', 'Publications', 'Conferences', 'A4'],
+    referenceSource: 'Standard Academic Curriculum Vitae Format',
+    colorScheme: 'Navy & Gold Accent (#1E1B4B)',
+    fontFamily: 'serif',
+    isPopular: true,
+    version: '1.0.0'
+  },
+  {
+    id: 'template_cv_professional',
+    name: 'Executive Career CV',
+    documentType: 'CV',
+    category: 'executive',
+    categoryCompatibility: ['EXPERIENCED', 'SOFTWARE_IT', 'BUSINESS_MANAGEMENT', 'CUSTOM'],
+    pageSize: 'a4',
+    columns: 1,
+    description: 'Detailed multi-page professional CV highlighting leadership impact, core competencies, client projects, and credentials.',
+    suitableFor: ['technical', 'non-technical', 'general'],
+    tags: ['Professional CV', 'Executive', 'Comprehensive', 'A4'],
+    referenceSource: 'Executive Leadership CV Format',
+    colorScheme: 'Slate Charcoal (#1E293B)',
+    fontFamily: 'sans',
+    isPopular: true,
+    version: '1.0.0'
+  },
+  {
+    id: 'template_cl_modern',
+    name: 'Modern ATS Cover Letter',
+    documentType: 'COVER_LETTER',
+    category: 'technical',
+    categoryCompatibility: ['SOFTWARE_IT', 'FRESHER', 'INTERNSHIP', 'ENTRY_LEVEL', 'CUSTOM'],
+    pageSize: 'letter',
+    columns: 1,
+    description: 'Contemporary tech cover letter featuring left-accented candidate credentials, ATS keyword alignment, and structured paragraphs.',
+    suitableFor: ['student', 'fresher', 'technical', 'general'],
+    tags: ['Cover Letter', 'Modern', 'ATS Friendly', 'Letter'],
+    referenceSource: 'Modern Tech Cover Letter Format',
+    colorScheme: 'Royal Blue (#2563EB)',
+    fontFamily: 'sans',
+    isPopular: true,
+    version: '1.0.0'
+  },
+  {
+    id: 'template_cl_professional',
+    name: 'Executive Formal Cover Letter',
+    documentType: 'COVER_LETTER',
+    category: 'executive',
+    categoryCompatibility: ['EXPERIENCED', 'BUSINESS_MANAGEMENT', 'CAREER_CHANGE', 'CUSTOM'],
+    pageSize: 'letter',
+    columns: 1,
+    description: 'Classic executive cover letter with traditional centered letterhead, formal salutation, recipient block, and signature.',
+    suitableFor: ['non-technical', 'general', 'fresher'],
+    tags: ['Cover Letter', 'Executive', 'Formal', 'Serif', 'Letter'],
+    referenceSource: 'Executive Formal Letter Format',
+    colorScheme: 'Slate Black (#0F172A)',
+    fontFamily: 'serif',
+    isPopular: true,
+    version: '1.0.0'
   }
 ];
+
+export const TEMPLATE_CATALOG: TemplateMetadata[] = RAW_TEMPLATE_CATALOG.map(t => ({
+  ...t,
+  documentType: t.documentType || 'RESUME'
+}));

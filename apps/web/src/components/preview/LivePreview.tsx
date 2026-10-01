@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useResume } from '../../context/ResumeContext';
 import { TEMPLATE_CATALOG, getTemplateComponent } from '@ai-resume/templates';
 import { apiClient } from '../../services/api';
-import { Download, Printer, ZoomIn, ZoomOut, RotateCcw, FileText, ChevronDown } from 'lucide-react';
+import { Download, Printer, ZoomIn, ZoomOut, RotateCcw, FileText } from 'lucide-react';
 import { track } from '../../services/analytics';
 
 interface LivePreviewProps {
@@ -10,35 +10,40 @@ interface LivePreviewProps {
 }
 
 export const LivePreview: React.FC<LivePreviewProps> = ({ onOpenGallery }) => {
-  const { resumeData, setTemplate } = useResume();
-  const [zoomLevel, setZoomLevel] = useState<number>(85); // Default 85% for comfortable dual-pane view
+  const { activeDocument, setTemplate } = useResume();
+  const [zoomLevel, setZoomLevel] = useState<number>(85);
   const [isExportingDocx, setIsExportingDocx] = useState(false);
 
-  const currentMeta = TEMPLATE_CATALOG.find(t => t.id === resumeData.templateId) || TEMPLATE_CATALOG[0];
-  const TemplateComponent = getTemplateComponent(resumeData.templateId);
+  const docType = activeDocument.documentType || 'RESUME';
+
+  // Filter templates matching documentType
+  const compatibleTemplates = TEMPLATE_CATALOG.filter(t => (t.documentType || 'RESUME') === docType);
+  const currentMeta = TEMPLATE_CATALOG.find(t => t.id === activeDocument.templateId) || compatibleTemplates[0] || TEMPLATE_CATALOG[0];
+  const TemplateComponent = getTemplateComponent(activeDocument.templateId);
 
   const handlePrintPdf = () => {
-    track('PDF_EXPORTED', { templateId: resumeData.templateId, status: 'SUCCESS' });
+    track('PDF_EXPORTED', { templateId: activeDocument.templateId, status: 'SUCCESS', metadata: { documentType: docType } });
     window.print();
   };
 
   const handleExportDocx = async () => {
     try {
       setIsExportingDocx(true);
-      const blob = await apiClient.exportDocx(resumeData);
+      const blob = await apiClient.exportDocx(activeDocument);
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      const candidateName = resumeData.personalInfo.fullName?.replace(/\s+/g, '_') || 'Resume';
-      a.download = `${candidateName}_Resume.docx`;
+      const candidateName = activeDocument.personalInfo.fullName?.replace(/\s+/g, '_') || 'Document';
+      const fileSuffix = docType === 'COVER_LETTER' ? 'Cover_Letter' : (docType === 'CV' ? 'CV' : 'Resume');
+      a.download = `${candidateName}_${fileSuffix}.docx`;
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
-      track('DOCX_EXPORTED', { templateId: resumeData.templateId, status: 'SUCCESS' });
+      track('DOCX_EXPORTED', { templateId: activeDocument.templateId, status: 'SUCCESS', metadata: { documentType: docType } });
     } catch (err) {
       console.error('Failed to export DOCX:', err);
-      track('DOCX_EXPORTED', { templateId: resumeData.templateId, status: 'ERROR' });
+      track('DOCX_EXPORTED', { templateId: activeDocument.templateId, status: 'ERROR' });
       alert('Failed to generate DOCX. Please try again.');
     } finally {
       setIsExportingDocx(false);
@@ -46,25 +51,25 @@ export const LivePreview: React.FC<LivePreviewProps> = ({ onOpenGallery }) => {
   };
 
   const handleTemplateSwitch = (newTemplateId: string) => {
-    track('TEMPLATE_SWITCHED', { templateId: newTemplateId });
+    track('TEMPLATE_SWITCHED', { templateId: newTemplateId, metadata: { documentType: docType } });
     setTemplate(newTemplateId);
   };
 
   return (
     <div className="flex flex-col h-full space-y-3">
       {/* Top Toolbar */}
-      <div className="bg-white p-3 rounded-lg border border-gray-200 shadow-2xs flex flex-wrap items-center justify-between gap-2.5 no-print">
+      <div className="bg-white p-3 rounded-xl border border-gray-200 shadow-2xs flex flex-wrap items-center justify-between gap-2.5 no-print">
         {/* Template Switcher Dropdown */}
         <div className="flex items-center gap-2">
           <span className="text-xs font-semibold text-gray-700 hidden sm:inline">Template:</span>
           <select
-            value={resumeData.templateId}
+            value={activeDocument.templateId}
             onChange={e => handleTemplateSwitch(e.target.value)}
-            className="px-2.5 py-1 text-xs bg-gray-50 border border-gray-300 rounded font-semibold text-gray-900 focus:outline-none focus:ring-1 focus:ring-sky-500"
+            className="px-2.5 py-1 text-xs bg-gray-50 border border-gray-300 rounded-lg font-semibold text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500"
           >
-            {TEMPLATE_CATALOG.map(t => (
+            {(compatibleTemplates.length > 0 ? compatibleTemplates : TEMPLATE_CATALOG).map(t => (
               <option key={t.id} value={t.id}>
-                {t.name} ({t.pageSize.toUpperCase()} • {t.columns} Col)
+                {t.name} ({t.pageSize.toUpperCase()})
               </option>
             ))}
           </select>
@@ -72,7 +77,7 @@ export const LivePreview: React.FC<LivePreviewProps> = ({ onOpenGallery }) => {
           {onOpenGallery && (
             <button
               onClick={onOpenGallery}
-              className="text-[11px] font-semibold text-sky-600 hover:text-sky-700 underline"
+              className="text-[11px] font-semibold text-indigo-600 hover:text-indigo-700 underline"
             >
               Gallery
             </button>
@@ -80,7 +85,7 @@ export const LivePreview: React.FC<LivePreviewProps> = ({ onOpenGallery }) => {
         </div>
 
         {/* Zoom Controls */}
-        <div className="flex items-center gap-1 bg-gray-100 p-0.5 rounded border border-gray-200">
+        <div className="flex items-center gap-1 bg-gray-100 p-0.5 rounded-lg border border-gray-200">
           <button
             onClick={() => setZoomLevel(prev => Math.max(50, prev - 10))}
             className="p-1 text-gray-600 hover:text-gray-900 rounded"
@@ -110,16 +115,16 @@ export const LivePreview: React.FC<LivePreviewProps> = ({ onOpenGallery }) => {
           <button
             onClick={handleExportDocx}
             disabled={isExportingDocx}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-gray-50 text-gray-800 border border-gray-300 rounded text-xs font-semibold shadow-2xs transition-colors"
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-gray-50 text-gray-800 border border-gray-300 rounded-lg text-xs font-semibold shadow-2xs transition-colors"
             title="Download Word .DOCX"
           >
-            <FileText className="w-3.5 h-3.5 text-blue-600" />
+            <FileText className="w-3.5 h-3.5 text-indigo-600" />
             <span>{isExportingDocx ? 'Exporting...' : 'DOCX'}</span>
           </button>
 
           <button
             onClick={handlePrintPdf}
-            className="flex items-center gap-1.5 px-3.5 py-1.5 bg-sky-600 hover:bg-sky-700 text-white rounded text-xs font-semibold shadow-xs transition-colors"
+            className="flex items-center gap-1.5 px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold shadow-xs transition-colors"
             title="Download Vector PDF"
           >
             <Download className="w-3.5 h-3.5" />
@@ -134,7 +139,7 @@ export const LivePreview: React.FC<LivePreviewProps> = ({ onOpenGallery }) => {
           className="resume-print-container origin-top transition-transform duration-150 shadow-xl rounded-sm"
           style={{ transform: `scale(${zoomLevel / 100})` }}
         >
-          <TemplateComponent data={resumeData} />
+          <TemplateComponent data={activeDocument} />
         </div>
       </div>
     </div>

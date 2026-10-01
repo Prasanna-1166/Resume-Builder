@@ -68,8 +68,70 @@ export const apiClient = {
     return res.json();
   },
 
+  async generateCoverLetter(payload: {
+    fullName?: string;
+    targetRole: string;
+    targetCompany: string;
+    jobDescription?: string;
+    skills?: string[];
+    experienceSnippet?: string;
+  }) {
+    const res = await fetch(`${API_BASE}/ai/generate-cover-letter`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+      credentials: 'include'
+    });
+    if (!res.ok) throw new Error('Failed to generate cover letter');
+    return res.json();
+  },
+
+  async improveCoverLetter(payload: {
+    text: string;
+    sectionType?: string;
+    targetRole?: string;
+    targetCompany?: string;
+  }) {
+    const res = await fetch(`${API_BASE}/ai/improve-cover-letter`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+      credentials: 'include'
+    });
+    if (!res.ok) throw new Error('Failed to improve cover letter');
+    return res.json();
+  },
+
+  async tailorDocument(payload: {
+    documentType?: string;
+    documentData: any;
+    jobDescription: string;
+    targetRole?: string;
+    targetCompany?: string;
+  }) {
+    const res = await fetch(`${API_BASE}/ai/tailor-document`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+      credentials: 'include'
+    });
+    if (!res.ok) throw new Error('Failed to tailor document');
+    return res.json();
+  },
+
+  async suggestCvSections(payload: { category?: string; targetField?: string }) {
+    const res = await fetch(`${API_BASE}/ai/suggest-cv-sections`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+      credentials: 'include'
+    });
+    if (!res.ok) throw new Error('Failed to fetch CV section suggestions');
+    return res.json();
+  },
+
   // Export
-  async exportDocx(data: ResumeData) {
+  async exportDocx(data: any) {
     const res = await fetch(`${API_BASE}/export/docx`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
