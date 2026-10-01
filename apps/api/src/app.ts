@@ -74,4 +74,12 @@ app.get('/api', (_req, res) => {
   });
 });
 
+app.get('/', (_req, res) => {
+  res.json({
+    name: 'AI Resume Builder API',
+    status: 'online',
+    version: '1.0.0'
+  });
+});
+
 export default app;
