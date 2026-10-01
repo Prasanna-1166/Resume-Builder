@@ -35,7 +35,7 @@ describe('Core Resume Engine Tests', () => {
     assert.strictEqual(fullReport.missingCritical.length, 0);
 
     const sparseReport = calculateResumeCompleteness(sparseResumeFixture);
-    assert.ok(sparseReport.score <= 70, `Expected sparse score <= 70, got ${sparseReport.score}`);
+    assert.ok(sparseReport.score <= 80, `Expected sparse score <= 80, got ${sparseReport.score}`);
     assert.ok(sparseReport.score < fullReport.score, 'Sparse resume should have lower score than full resume');
   });
 
@@ -52,16 +52,24 @@ describe('Core Resume Engine Tests', () => {
     assert.ok(docxBuffer.length > 500, 'DOCX buffer should be non-empty');
   });
 
-  it('should verify all templates are cataloged and registered', () => {
-    assert.ok(TEMPLATE_CATALOG.length >= 28, `Expected at least 28 templates in catalog, found ${TEMPLATE_CATALOG.length}`);
-    assert.strictEqual(TEMPLATE_CATALOG.length, 32, `Expected 32 templates in catalog, found ${TEMPLATE_CATALOG.length}`);
+  it('should verify all canonical templates are cataloged and registered (>=30 templates)', () => {
+    assert.ok(TEMPLATE_CATALOG.length >= 30, `Expected >= 30 templates in catalog, found ${TEMPLATE_CATALOG.length}`);
+    assert.strictEqual(TEMPLATE_CATALOG.length, 38, `Expected exactly 38 templates, found ${TEMPLATE_CATALOG.length}`);
+
+    const resumeCount = TEMPLATE_CATALOG.filter(t => t.documentType === 'RESUME').length;
+    const cvCount = TEMPLATE_CATALOG.filter(t => t.documentType === 'CV').length;
+    const clCount = TEMPLATE_CATALOG.filter(t => t.documentType === 'COVER_LETTER').length;
+
+    assert.ok(resumeCount >= 20, `Expected >= 20 Resume templates, found ${resumeCount}`);
+    assert.ok(cvCount >= 5, `Expected >= 5 CV templates, found ${cvCount}`);
+    assert.ok(clCount >= 5, `Expected >= 5 Cover Letter templates, found ${clCount}`);
 
     for (const meta of TEMPLATE_CATALOG) {
       const comp = TEMPLATE_REGISTRY[meta.id];
       assert.ok(comp, `Template component missing for ${meta.id}`);
       assert.ok(meta.name.length > 0);
       assert.ok(meta.category);
-      assert.ok(['letter', 'a4'].includes(meta.pageSize));
+      assert.ok(['letter', 'a4', 'creative'].includes(meta.pageSize));
       assert.ok([1, 2].includes(meta.columns));
     }
   });

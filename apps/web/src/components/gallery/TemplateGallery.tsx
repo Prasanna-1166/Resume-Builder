@@ -21,11 +21,15 @@ export const TemplateGallery: React.FC<TemplateGalleryProps> = ({ onSelectTempla
     track('PAGE_VIEW', { metadata: { page: 'gallery' } });
   }, []);
 
+  const resumeCount = TEMPLATE_CATALOG.filter(t => (t.documentType || 'RESUME') === 'RESUME').length;
+  const cvCount = TEMPLATE_CATALOG.filter(t => t.documentType === 'CV').length;
+  const clCount = TEMPLATE_CATALOG.filter(t => t.documentType === 'COVER_LETTER').length;
+
   const docTypeTabs = [
     { id: 'ALL', label: 'All Templates', count: TEMPLATE_CATALOG.length },
-    { id: 'RESUME', label: 'Resumes (28)', count: TEMPLATE_CATALOG.filter(t => (t.documentType || 'RESUME') === 'RESUME').length },
-    { id: 'CV', label: 'Curriculum Vitae (2)', count: TEMPLATE_CATALOG.filter(t => t.documentType === 'CV').length },
-    { id: 'COVER_LETTER', label: 'Cover Letters (2)', count: TEMPLATE_CATALOG.filter(t => t.documentType === 'COVER_LETTER').length }
+    { id: 'RESUME', label: `Resumes (${resumeCount})`, count: resumeCount },
+    { id: 'CV', label: `Curriculum Vitae (${cvCount})`, count: cvCount },
+    { id: 'COVER_LETTER', label: `Cover Letters (${clCount})`, count: clCount }
   ];
 
   const categories = [
@@ -76,13 +80,13 @@ export const TemplateGallery: React.FC<TemplateGalleryProps> = ({ onSelectTempla
       <div className="text-center max-w-3xl mx-auto mb-8">
         <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-indigo-50 text-indigo-700 mb-3 border border-indigo-100">
           <Sparkles className="w-3.5 h-3.5 text-indigo-600" />
-          <span>Professional Template Library ({TEMPLATE_CATALOG.length} Standard Designs)</span>
+          <span>Curated Template Library ({TEMPLATE_CATALOG.length} Differentiated Designs)</span>
         </div>
         <h1 className="text-3xl sm:text-4xl font-extrabold text-gray-900 tracking-tight">
           Find the Perfect Layout for Your Career Stage
         </h1>
         <p className="mt-2 text-sm sm:text-base text-gray-600">
-          Every layout is engineered with strict ATS-parsing typography, clean section hierarchy, and zero-column truncation.
+          Every layout is engineered with clean section hierarchy, robust print styles, and designed for ATS readability.
         </p>
 
         {/* Quick Discovery Tags */}

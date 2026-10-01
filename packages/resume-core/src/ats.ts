@@ -18,7 +18,7 @@ export function runAtsAudit(data: ResumeData): AtsCheckResult {
   const issues: AtsCheckIssue[] = [];
 
   // 1. Contact checks
-  if (!data.personalInfo.email || !data.personalInfo.email.includes('@')) {
+  if (!data.personalInfo?.email || !data.personalInfo.email.includes('@')) {
     issues.push({
       id: 'missing-email',
       severity: 'error',
@@ -29,7 +29,7 @@ export function runAtsAudit(data: ResumeData): AtsCheckResult {
     });
   }
 
-  if (!data.personalInfo.phone || data.personalInfo.phone.length < 7) {
+  if (!data.personalInfo?.phone || data.personalInfo.phone.length < 7) {
     issues.push({
       id: 'missing-phone',
       severity: 'error',
@@ -40,14 +40,14 @@ export function runAtsAudit(data: ResumeData): AtsCheckResult {
     });
   }
 
-  if (!data.personalInfo.location) {
+  if (!data.personalInfo?.location) {
     issues.push({
       id: 'missing-location',
       severity: 'warning',
       category: 'contact',
       title: 'Missing Location / City',
       description: 'ATS geo-filters check candidate location for remote vs on-site compatibility.',
-      suggestion: 'Add City, State/Country (e.g. San Francisco, CA or Bangalore, India).'
+      suggestion: 'Add City, State/Country (e.g. San Francisco, CA or London, UK).'
     });
   }
 
@@ -59,7 +59,7 @@ export function runAtsAudit(data: ResumeData): AtsCheckResult {
       category: 'sections',
       title: 'Missing Standard Section: Education',
       description: 'Educational history is a core filter in applicant tracking systems.',
-      suggestion: 'Add your degree, university, and graduation year.'
+      suggestion: 'Add your degree, institution, and graduation year.'
     });
   }
 
@@ -74,15 +74,29 @@ export function runAtsAudit(data: ResumeData): AtsCheckResult {
     });
   }
 
-  // 3. Bullet quality & Action Verbs
+  // 3. Summary check
+  if (data.summary && data.summary.length > 600) {
+    issues.push({
+      id: 'long-summary',
+      severity: 'info',
+      category: 'formatting',
+      title: 'Lengthy Summary (>600 chars)',
+      description: 'A concise 2–3 sentence executive summary is easier to scan quickly.',
+      suggestion: 'Condense your summary to focus strictly on your primary value proposition.'
+    });
+  }
+
+  // 4. Bullet quality, Action Verbs, Pronouns & Formatting
   const allBullets: string[] = [];
   data.experience?.forEach(exp => exp.bullets?.forEach(b => allBullets.push(b)));
   data.projects?.forEach(proj => proj.bullets?.forEach(b => allBullets.push(b)));
 
   let actionVerbCount = 0;
   let metricCount = 0;
+  let firstPersonCount = 0;
 
   const metricRegex = /\b(\d+(?:\.\d+)?%?|\$\d+(?:\.\d+)?|\d+\+?|\d+x)\b/i;
+  const firstPersonRegex = /\b(i|my|we|our|me)\b/i;
 
   allBullets.forEach(b => {
     const firstWord = b.trim().split(/\s+/)[0]?.toLowerCase().replace(/[^a-z-]/g, '');
@@ -91,6 +105,9 @@ export function runAtsAudit(data: ResumeData): AtsCheckResult {
     }
     if (metricRegex.test(b)) {
       metricCount++;
+    }
+    if (firstPersonRegex.test(b)) {
+      firstPersonCount++;
     }
 
     if (b.length > 250) {
@@ -105,6 +122,17 @@ export function runAtsAudit(data: ResumeData): AtsCheckResult {
     }
   });
 
+  if (firstPersonCount > 0) {
+    issues.push({
+      id: 'first-person-language',
+      severity: 'info',
+      category: 'formatting',
+      title: 'First-Person Pronouns Detected',
+      description: 'Traditional resume style avoids first-person pronouns ("I", "my", "we").',
+      suggestion: 'Begin bullet points directly with action verbs (e.g., "Led development of..." instead of "I led...").'
+    });
+  }
+
   const actionVerbRatio = allBullets.length > 0 ? actionVerbCount / allBullets.length : 0;
 
   if (allBullets.length > 0 && actionVerbRatio < 0.5) {
@@ -113,7 +141,7 @@ export function runAtsAudit(data: ResumeData): AtsCheckResult {
       severity: 'warning',
       category: 'keywords',
       title: 'Low Action Verb Density',
-      description: `Only ${Math.round(actionVerbRatio * 100)}% of bullets begin with recognized strong action verbs (e.g., "Engineered", "Spearheaded", "Reduced").`,
+      description: `Only ${Math.round(actionVerbRatio * 100)}% of bullets begin with recognized strong action verbs (e.g., "Engineered", "Spearheaded", "Delivered").`,
       suggestion: 'Begin bullet points with dynamic past-tense action verbs.'
     });
   }
@@ -124,13 +152,40 @@ export function runAtsAudit(data: ResumeData): AtsCheckResult {
       severity: 'warning',
       category: 'keywords',
       title: 'No Quantifiable Metrics Detected',
-      description: 'Resumes with numerical metrics (%, latency, users, revenue) perform 40% better in screenings.',
-      suggestion: 'Add factual numbers to highlight impact where applicable (e.g., "reduced latency by 30%").'
+      description: 'Resumes with numerical metrics (%, latency, users, revenue) perform significantly better in screenings.',
+      suggestion: 'Add factual numbers to highlight impact where applicable (e.g., "reduced build times by 35%").'
     });
   }
 
-  // 4. Skills count
-  const skillCount = data.skills?.reduce((acc, cat) => acc + (cat.items?.length || 0), 0) || 0;
+  // 5. Skills & Duplicates Check
+  const allSkillItems: string[] = [];
+  const duplicateSkills = new Set<string>();
+  const seenSkills = new Set<string>();
+
+  data.skills?.forEach(cat => {
+    cat.items?.forEach(item => {
+      const normalized = item.trim().toLowerCase();
+      if (seenSkills.has(normalized)) {
+        duplicateSkills.add(item.trim());
+      } else {
+        seenSkills.add(normalized);
+      }
+      allSkillItems.push(item);
+    });
+  });
+
+  if (duplicateSkills.size > 0) {
+    issues.push({
+      id: 'duplicate-skills',
+      severity: 'info',
+      category: 'keywords',
+      title: 'Duplicate Skills Detected',
+      description: `Skills appear in multiple categories: ${Array.from(duplicateSkills).join(', ')}.`,
+      suggestion: 'Consolidate duplicate skills into a single relevant category.'
+    });
+  }
+
+  const skillCount = allSkillItems.length;
   if (skillCount < 5) {
     issues.push({
       id: 'low-skill-count',

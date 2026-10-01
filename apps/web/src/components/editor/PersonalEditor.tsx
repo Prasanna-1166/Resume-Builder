@@ -47,7 +47,7 @@ export const PersonalEditor: React.FC = () => {
               type="text"
               value={info.fullName || ''}
               onChange={e => handleChange('fullName', e.target.value)}
-              placeholder="e.g. Aarav Sharma"
+              placeholder="e.g. Alex Morgan"
               className="w-full pl-8 pr-3 py-1.5 text-xs bg-white border border-gray-300 rounded-md focus:ring-2 focus:ring-sky-500 focus:outline-none"
             />
           </div>
@@ -62,7 +62,7 @@ export const PersonalEditor: React.FC = () => {
             type="text"
             value={info.professionalTitle || ''}
             onChange={e => handleChange('professionalTitle', e.target.value)}
-            placeholder="e.g. Software Engineer / Fresher"
+            placeholder="e.g. Software Engineer / Analyst"
             className="w-full px-3 py-1.5 text-xs bg-white border border-gray-300 rounded-md focus:ring-2 focus:ring-sky-500 focus:outline-none"
           />
         </div>
@@ -78,7 +78,7 @@ export const PersonalEditor: React.FC = () => {
               type="email"
               value={info.email || ''}
               onChange={e => handleChange('email', e.target.value)}
-              placeholder="e.g. aarav@example.edu"
+              placeholder="e.g. alex@example.com"
               className="w-full pl-8 pr-3 py-1.5 text-xs bg-white border border-gray-300 rounded-md focus:ring-2 focus:ring-sky-500 focus:outline-none"
             />
           </div>
@@ -95,7 +95,7 @@ export const PersonalEditor: React.FC = () => {
               type="text"
               value={info.phone || ''}
               onChange={e => handleChange('phone', e.target.value)}
-              placeholder="e.g. +91 98765 43210"
+              placeholder="e.g. +1 (555) 019-2834"
               className="w-full pl-8 pr-3 py-1.5 text-xs bg-white border border-gray-300 rounded-md focus:ring-2 focus:ring-sky-500 focus:outline-none"
             />
           </div>

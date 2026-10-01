@@ -332,28 +332,41 @@ export const DocumentDashboard: React.FC<DocumentDashboardProps> = ({
       {/* Create Document Modal */}
       {createModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full p-6 border border-slate-100">
-            <h2 className="text-xl font-bold text-slate-900 mb-1">Create New Career Document</h2>
-            <p className="text-xs text-slate-500 mb-5">
-              Choose the document format and specialization category that best matches your objective.
+          <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full p-6 border border-slate-100 max-h-[92vh] overflow-y-auto">
+            <h2 className="text-xl font-bold text-slate-900 mb-1">Create Career Document</h2>
+            <p className="text-xs text-slate-500 mb-4">
+              Follow the guided workflow: select format, purpose, and a tailored ATS-friendly template.
             </p>
 
             <form onSubmit={handleCreate} className="space-y-4">
-              {/* Document Type Selector */}
+              {/* 1. Document Format */}
               <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
-                  Document Format
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                  1. Choose Document Format
                 </label>
                 <div className="grid grid-cols-3 gap-2">
                   {[
-                    { type: 'RESUME', label: 'Resume', desc: '1-2 page standard format' },
-                    { type: 'CV', label: 'Curriculum Vitae', desc: 'Detailed academic/exec' },
+                    { type: 'RESUME', label: 'Resume', desc: '1–2 page industry standard' },
+                    { type: 'CV', label: 'Curriculum Vitae', desc: 'Detailed academic/career CV' },
                     { type: 'COVER_LETTER', label: 'Cover Letter', desc: 'Targeted application letter' }
                   ].map(t => (
                     <button
                       type="button"
                       key={t.type}
-                      onClick={() => setNewType(t.type as DocumentType)}
+                      onClick={() => {
+                        const newDocType = t.type as DocumentType;
+                        setNewType(newDocType);
+                        if (newDocType === 'CV') {
+                          setNewCategory('ACADEMIC_RESEARCH');
+                          setNewTemplateId('template_cv_academic');
+                        } else if (newDocType === 'COVER_LETTER') {
+                          setNewCategory('SOFTWARE_IT');
+                          setNewTemplateId('template_cl_modern');
+                        } else {
+                          setNewCategory('STUDENT');
+                          setNewTemplateId('template_01');
+                        }
+                      }}
                       className={`p-3 rounded-xl border text-left transition-all ${
                         newType === t.type
                           ? 'border-indigo-600 bg-indigo-50/50 ring-2 ring-indigo-600/20'
@@ -369,37 +382,114 @@ export const DocumentDashboard: React.FC<DocumentDashboardProps> = ({
                 </div>
               </div>
 
-              {/* Title */}
+              {/* 2. Purpose / Category */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                  2. Select Purpose / Category
+                </label>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  {(newType === 'RESUME'
+                    ? [
+                        { id: 'FRESHER', label: 'Fresher' },
+                        { id: 'STUDENT', label: 'Student / College' },
+                        { id: 'INTERNSHIP', label: 'Internship' },
+                        { id: 'ENTRY_LEVEL', label: 'Entry Level' },
+                        { id: 'EXPERIENCED', label: 'Experienced' },
+                        { id: 'CAREER_CHANGE', label: 'Career Change' },
+                        { id: 'SOFTWARE_IT', label: 'Software / IT' },
+                        { id: 'BUSINESS_MANAGEMENT', label: 'Business / Mgmt' }
+                      ]
+                    : newType === 'CV'
+                    ? [
+                        { id: 'ACADEMIC_RESEARCH', label: 'Academic & Research' },
+                        { id: 'EXPERIENCED', label: 'Professional / Clinical' },
+                        { id: 'SOFTWARE_IT', label: 'Tech Specialist' },
+                        { id: 'CUSTOM', label: 'General Scholar' }
+                      ]
+                    : [
+                        { id: 'SOFTWARE_IT', label: 'Job Application' },
+                        { id: 'INTERNSHIP', label: 'Internship Letter' },
+                        { id: 'CAREER_CHANGE', label: 'Career Change' },
+                        { id: 'CUSTOM', label: 'General Application' }
+                      ]
+                  ).map(cat => (
+                    <button
+                      type="button"
+                      key={cat.id}
+                      onClick={() => setNewCategory(cat.id as DocumentCategory)}
+                      className={`px-3 py-2 rounded-lg border text-left text-xs font-medium transition-all ${
+                        newCategory === cat.id
+                          ? 'border-indigo-600 bg-indigo-50/50 text-indigo-900 font-bold'
+                          : 'border-slate-200 text-slate-700 hover:border-slate-300'
+                      }`}
+                    >
+                      {cat.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* 3. Suitable Recommended Templates */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                  3. Choose Tailored Template
+                </label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                  {TEMPLATE_CATALOG.filter(t => (t.documentType || 'RESUME') === newType).map(tpl => {
+                    const isSelected = (newTemplateId || (newType === 'COVER_LETTER' ? 'template_cl_modern' : newType === 'CV' ? 'template_cv_academic' : 'template_01')) === tpl.id;
+                    return (
+                      <div
+                        key={tpl.id}
+                        onClick={() => setNewTemplateId(tpl.id)}
+                        className={`p-3 rounded-xl border cursor-pointer transition-all ${
+                          isSelected
+                            ? 'border-indigo-600 bg-indigo-50/40 ring-2 ring-indigo-600/20'
+                            : 'border-slate-200 hover:border-slate-300'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-bold text-slate-900">{tpl.name}</span>
+                          <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 font-medium">
+                            {tpl.fontFamily} · {tpl.pageSize.toUpperCase()}
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-slate-500 mt-1 line-clamp-2 leading-relaxed">
+                          {tpl.description}
+                        </p>
+                        {tpl.strengths && (
+                          <div className="mt-2 flex flex-wrap gap-1">
+                            {tpl.strengths.slice(0, 2).map((st, i) => (
+                              <span key={i} className="text-[9.5px] px-1.5 py-0.5 bg-white border border-slate-200 rounded text-slate-600">
+                                ✓ {st}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* 4. Document Title */}
               <div>
                 <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
-                  Document Title
+                  4. Document Name
                 </label>
                 <input
                   type="text"
                   required
-                  placeholder={newType === 'COVER_LETTER' ? 'e.g. Google SWE Cover Letter' : 'e.g. Senior Backend Engineer Resume'}
+                  placeholder={
+                    newType === 'COVER_LETTER'
+                      ? 'e.g. Software Engineer Application Letter'
+                      : newType === 'CV'
+                      ? 'e.g. Academic Research CV'
+                      : 'e.g. Software Engineer Resume'
+                  }
                   value={newTitle}
                   onChange={e => setNewTitle(e.target.value)}
                   className="w-full px-3 py-2 text-xs border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 />
-              </div>
-
-              {/* Category */}
-              <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
-                  Target Domain / Experience Category
-                </label>
-                <select
-                  value={newCategory}
-                  onChange={e => setNewCategory(e.target.value as DocumentCategory)}
-                  className="w-full px-3 py-2 text-xs border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
-                >
-                  {DOCUMENT_CATEGORIES.map(cat => (
-                    <option key={cat.id} value={cat.id}>
-                      {cat.name} ({cat.description.slice(0, 45)}...)
-                    </option>
-                  ))}
-                </select>
               </div>
 
               {/* Modal Buttons */}
@@ -413,9 +503,10 @@ export const DocumentDashboard: React.FC<DocumentDashboardProps> = ({
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-500 rounded-lg shadow-md transition-all"
+                  className="px-5 py-2 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-500 rounded-lg shadow-md transition-all flex items-center gap-1.5"
                 >
-                  Create & Launch Editor
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>Create & Open Editor</span>
                 </button>
               </div>
             </form>

@@ -23,11 +23,27 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [loading, setLoading] = useState<boolean>(true);
 
   useEffect(() => {
+    // Only attempt profile verification if a token exists or in browser context
+    const token = typeof window !== 'undefined' ? localStorage.getItem('admin_token') : null;
+    if (!token) {
+      setUser(null);
+      setLoading(false);
+      return;
+    }
+
     apiClient.getAdminMe()
       .then(res => {
-        if (res.user) setUser(res.user);
+        if (res.user) {
+          setUser(res.user);
+        } else {
+          setUser(null);
+          if (typeof window !== 'undefined') localStorage.removeItem('admin_token');
+        }
       })
       .catch(() => {
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem('admin_token');
+        }
         setUser(null);
       })
       .finally(() => {

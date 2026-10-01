@@ -36,10 +36,12 @@ export async function login(req: Request, res: Response): Promise<void> {
     );
 
     const isProd = process.env.NODE_ENV === 'production';
+    // When in cross-domain production (e.g. Vercel frontend calling Render backend),
+    // sameSite must be 'none' with secure: true so browsers accept and send cross-origin cookies.
     res.cookie('admin_token', token, {
       httpOnly: true,
       secure: isProd,
-      sameSite: isProd ? 'strict' : 'lax',
+      sameSite: isProd ? 'none' : 'lax',
       maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
     });
 
@@ -84,6 +86,11 @@ export async function getMe(req: AuthenticatedRequest, res: Response): Promise<v
 }
 
 export function logout(_req: Request, res: Response): void {
-  res.clearCookie('admin_token');
+  const isProd = process.env.NODE_ENV === 'production';
+  res.clearCookie('admin_token', {
+    httpOnly: true,
+    secure: isProd,
+    sameSite: isProd ? 'none' : 'lax'
+  });
   res.json({ success: true, message: 'Logged out successfully.' });
 }

@@ -152,9 +152,10 @@ describe('Multi-Document Platform: Template Engine & Rendering', () => {
     const cvTemplates = TEMPLATE_CATALOG.filter(t => t.documentType === 'CV');
     const clTemplates = TEMPLATE_CATALOG.filter(t => t.documentType === 'COVER_LETTER');
 
-    assert.strictEqual(resumeTemplates.length, 28, 'Should have 28 resume templates');
-    assert.strictEqual(cvTemplates.length, 2, 'Should have 2 CV templates');
-    assert.strictEqual(clTemplates.length, 2, 'Should have 2 Cover Letter templates');
+    assert.ok(resumeTemplates.length >= 20, `Should have >= 20 resume templates, got ${resumeTemplates.length}`);
+    assert.ok(cvTemplates.length >= 5, `Should have >= 5 CV templates, got ${cvTemplates.length}`);
+    assert.ok(clTemplates.length >= 5, `Should have >= 5 Cover Letter templates, got ${clTemplates.length}`);
+    assert.ok(TEMPLATE_CATALOG.length >= 30, `Should have >= 30 total templates, got ${TEMPLATE_CATALOG.length}`);
   });
 
   it('should render Academic CV (template_cv_academic) cleanly', () => {
@@ -216,23 +217,44 @@ describe('Multi-Document Platform: Template Engine & Rendering', () => {
     assert.ok(html.includes('CRISPR Gene Editing Analysis'));
   });
 
-  it('should render Modern Cover Letter (template_cl_modern) with CoverLetterData', () => {
-    const clComp = TEMPLATE_REGISTRY['template_cl_modern'];
-    assert.ok(clComp, 'template_cl_modern component not registered');
+  it('should render Medical, Engineering, & Faculty CV templates', () => {
+    const medComp = TEMPLATE_REGISTRY['template_cv_medical'];
+    const engComp = TEMPLATE_REGISTRY['template_cv_engineering'];
+    const facComp = TEMPLATE_REGISTRY['template_cv_faculty'];
 
-    const html = renderToString(React.createElement(clComp, { data: sampleCoverLetterFixture }));
-    assert.ok(html.includes('Alex Morgan'));
-    assert.ok(html.includes('TechCorp Solutions'));
-    assert.ok(html.includes('Senior Full Stack Software Engineer'));
-    assert.ok(html.includes('Dear Hiring Committee,'));
+    assert.ok(medComp, 'template_cv_medical registered');
+    assert.ok(engComp, 'template_cv_engineering registered');
+    assert.ok(facComp, 'template_cv_faculty registered');
+
+    const medHtml = renderToString(React.createElement(medComp, { data: { personalInfo: { fullName: 'Dr. Sarah Connor, MD' } } }));
+    assert.ok(medHtml.includes('Dr. Sarah Connor, MD'));
+
+    const engHtml = renderToString(React.createElement(engComp, { data: { personalInfo: { fullName: 'Elena Rostova, Fellow' } } }));
+    assert.ok(engHtml.includes('Elena Rostova, Fellow'));
+
+    const facHtml = renderToString(React.createElement(facComp, { data: { personalInfo: { fullName: 'Prof. David Hilbert' } } }));
+    assert.ok(facHtml.includes('Prof. David Hilbert'));
   });
 
-  it('should render Executive Formal Cover Letter (template_cl_professional) with CoverLetterData', () => {
-    const clComp = TEMPLATE_REGISTRY['template_cl_professional'];
-    assert.ok(clComp, 'template_cl_professional component not registered');
+  it('should render all 5 Cover Letter templates with CoverLetterData', () => {
+    const clModern = TEMPLATE_REGISTRY['template_cl_modern'];
+    const clPro = TEMPLATE_REGISTRY['template_cl_professional'];
+    const clMin = TEMPLATE_REGISTRY['template_cl_minimal'];
+    const clAcad = TEMPLATE_REGISTRY['template_cl_academic'];
+    const clCreat = TEMPLATE_REGISTRY['template_cl_creative'];
 
-    const html = renderToString(React.createElement(clComp, { data: sampleCoverLetterFixture }));
-    assert.ok(html.includes('Alex Morgan'));
-    assert.ok(html.includes('TechCorp Solutions'));
+    assert.ok(clModern && clPro && clMin && clAcad && clCreat);
+
+    for (const [id, comp] of Object.entries({
+      template_cl_modern: clModern,
+      template_cl_professional: clPro,
+      template_cl_minimal: clMin,
+      template_cl_academic: clAcad,
+      template_cl_creative: clCreat
+    })) {
+      const html = renderToString(React.createElement(comp, { data: sampleCoverLetterFixture }));
+      assert.ok(html.includes('Alex Morgan'), `${id} failed to render candidate name`);
+      assert.ok(html.includes('TechCorp Solutions'), `${id} failed to render recipient company`);
+    }
   });
 });

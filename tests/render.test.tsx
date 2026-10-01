@@ -11,7 +11,7 @@ import {
 } from '../packages/resume-core/src/index';
 import { TEMPLATE_CATALOG, TEMPLATE_REGISTRY } from '../packages/templates/src/index';
 
-describe('All 28 Templates Rendering & Visual Stability Matrix', () => {
+describe('Canonical Templates Rendering & Visual Stability Matrix', () => {
   const fixtures = [
     { name: 'Student Fresher', data: studentFresherFixture },
     { name: 'Senior SWE', data: softwareEngineerFixture },

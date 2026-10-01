@@ -9,7 +9,9 @@ import { ProjectsEditor } from './ProjectsEditor';
 import { SkillsEditor } from './SkillsEditor';
 import { CertificationsEditor } from './CertificationsEditor';
 import { AchievementsEditor } from './AchievementsEditor';
+import { CvSectionsEditor } from './CvSectionsEditor';
 import { SectionReorder } from './SectionReorder';
+import { useResume } from '../../context/ResumeContext';
 import {
   User,
   FileText,
@@ -19,7 +21,8 @@ import {
   Wrench,
   Award,
   Trophy,
-  Sliders
+  Sliders,
+  BookOpen
 } from 'lucide-react';
 
 interface ResumeEditorProps {
@@ -31,13 +34,16 @@ export const ResumeEditor: React.FC<ResumeEditorProps> = ({
   onOpenAiEnhance,
   onOpenSkillSuggestions
 }) => {
+  const { activeDocument } = useResume();
+  const isCv = activeDocument.documentType === 'CV';
   const [activeTab, setActiveTab] = useState<string>('personal');
 
   const tabs = [
     { id: 'personal', label: 'Personal', icon: User },
-    { id: 'summary', label: 'Summary', icon: FileText },
+    { id: 'summary', label: isCv ? 'Interests / Summary' : 'Summary', icon: FileText },
     { id: 'education', label: 'Education', icon: GraduationCap },
     { id: 'experience', label: 'Experience', icon: Briefcase },
+    ...(isCv ? [{ id: 'cv_sections', label: 'Research & Pubs', icon: BookOpen }] : []),
     { id: 'projects', label: 'Projects', icon: FolderGit2 },
     { id: 'skills', label: 'Skills', icon: Wrench },
     { id: 'certifications', label: 'Certs', icon: Award },
@@ -64,7 +70,7 @@ export const ResumeEditor: React.FC<ResumeEditorProps> = ({
                 onClick={() => setActiveTab(tab.id)}
                 className={`flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-t-lg transition-colors whitespace-nowrap ${
                   isActive
-                    ? 'bg-white text-sky-600 border-t-2 border-sky-600 shadow-xs'
+                    ? 'bg-white text-indigo-600 border-t-2 border-indigo-600 shadow-xs'
                     : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
                 }`}
               >
@@ -81,6 +87,7 @@ export const ResumeEditor: React.FC<ResumeEditorProps> = ({
           {activeTab === 'summary' && <SummaryEditor onOpenAiEnhance={onOpenAiEnhance} />}
           {activeTab === 'education' && <EducationEditor />}
           {activeTab === 'experience' && <ExperienceEditor onOpenAiEnhance={onOpenAiEnhance} />}
+          {activeTab === 'cv_sections' && <CvSectionsEditor />}
           {activeTab === 'projects' && <ProjectsEditor onOpenAiEnhance={onOpenAiEnhance} />}
           {activeTab === 'skills' && <SkillsEditor onOpenSkillSuggestions={onOpenSkillSuggestions} />}
           {activeTab === 'certifications' && <CertificationsEditor />}

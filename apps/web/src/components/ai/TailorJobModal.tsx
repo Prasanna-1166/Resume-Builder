@@ -18,7 +18,7 @@ interface TailorJobModalProps {
 }
 
 export const TailorJobModal: React.FC<TailorJobModalProps> = ({ isOpen, onClose }) => {
-  const { activeDocument, updateResumeData, saveVersionSnapshot } = useResume();
+  const { activeDocument, updateResumeData, saveVersionSnapshot, duplicateCurrentDraft } = useResume();
 
   const [jobTitle, setJobTitle] = useState(activeDocument.title || '');
   const [targetCompany, setTargetCompany] = useState('');
@@ -52,32 +52,61 @@ export const TailorJobModal: React.FC<TailorJobModalProps> = ({ isOpen, onClose 
     }
   };
 
-  const handleApplyTailored = () => {
+  const handleApplyTailored = (asCopy: boolean = false) => {
     if (!tailorResult) return;
 
-    // 1. First automatically preserve a version snapshot
-    saveVersionSnapshot(`Pre-Tailor Snapshot (${targetCompany || 'Job Tailor'})`, 'Original', `Auto-backup before tailoring to ${targetCompany}`);
-
-    // 2. Apply tailored summary and recommended skills to resume if resume/cv
-    if (activeDocument.documentType !== 'COVER_LETTER') {
-      updateResumeData(prev => {
-        let updatedSkills = [...prev.skills];
-        if (tailorResult.recommendedSkillAdditions && tailorResult.recommendedSkillAdditions.length > 0) {
-          if (updatedSkills.length > 0) {
-            updatedSkills[0] = {
-              ...updatedSkills[0],
-              items: Array.from(new Set([...updatedSkills[0].items, ...tailorResult.recommendedSkillAdditions]))
-            };
+    if (asCopy) {
+      // 1. Duplicate current document to a new dedicated tailored copy
+      duplicateCurrentDraft();
+      const targetTitle = `${activeDocument.title} - ${targetCompany || 'Tailored'}`;
+      
+      // 2. Apply tailored changes to the new active copy
+      if (activeDocument.documentType !== 'COVER_LETTER') {
+        updateResumeData(prev => {
+          let updatedSkills = [...prev.skills];
+          if (tailorResult.recommendedSkillAdditions && tailorResult.recommendedSkillAdditions.length > 0) {
+            if (updatedSkills.length > 0) {
+              updatedSkills[0] = {
+                ...updatedSkills[0],
+                items: Array.from(new Set([...updatedSkills[0].items, ...tailorResult.recommendedSkillAdditions]))
+              };
+            }
           }
-        }
-        return {
-          ...prev,
-          targetRole: jobTitle || prev.targetRole,
-          targetCompany: targetCompany || prev.targetCompany,
-          summary: tailorResult.summarySuggestion || prev.summary,
-          skills: updatedSkills
-        };
-      });
+          return {
+            ...prev,
+            title: targetTitle,
+            targetRole: jobTitle || prev.targetRole,
+            targetCompany: targetCompany || prev.targetCompany,
+            summary: tailorResult.summarySuggestion || prev.summary,
+            skills: updatedSkills
+          };
+        });
+      }
+    } else {
+      // 1. Preserve a version snapshot before updating current document
+      saveVersionSnapshot(`Pre-Tailor Snapshot (${targetCompany || 'Job Tailor'})`, 'Original', `Auto-backup before tailoring to ${targetCompany}`);
+
+      // 2. Apply tailored summary and recommended skills to resume if resume/cv
+      if (activeDocument.documentType !== 'COVER_LETTER') {
+        updateResumeData(prev => {
+          let updatedSkills = [...prev.skills];
+          if (tailorResult.recommendedSkillAdditions && tailorResult.recommendedSkillAdditions.length > 0) {
+            if (updatedSkills.length > 0) {
+              updatedSkills[0] = {
+                ...updatedSkills[0],
+                items: Array.from(new Set([...updatedSkills[0].items, ...tailorResult.recommendedSkillAdditions]))
+              };
+            }
+          }
+          return {
+            ...prev,
+            targetRole: jobTitle || prev.targetRole,
+            targetCompany: targetCompany || prev.targetCompany,
+            summary: tailorResult.summarySuggestion || prev.summary,
+            skills: updatedSkills
+          };
+        });
+      }
     }
 
     setApplied(true);
@@ -210,25 +239,34 @@ export const TailorJobModal: React.FC<TailorJobModalProps> = ({ isOpen, onClose 
             )}
 
             {/* Guardrail Note & Approval Footer */}
-            <div className="flex items-center justify-between pt-2">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-3 border-t border-slate-200">
               <div className="flex items-center gap-1.5 text-[11px] text-slate-500">
-                <ShieldCheck className="w-4 h-4 text-indigo-600" />
-                <span>Original version will be automatically backed up.</span>
+                <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
+                <span>Original resume will not be modified when creating a copy.</span>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <button
                   onClick={() => setTailorResult(null)}
                   className="px-3 py-1.5 text-xs text-slate-600 hover:bg-slate-200 rounded-lg"
                 >
-                  Adjust Inputs
+                  Edit Input
                 </button>
                 <button
-                  onClick={handleApplyTailored}
+                  onClick={() => handleApplyTailored(false)}
+                  disabled={applied}
+                  className="px-3.5 py-2 bg-slate-200 hover:bg-slate-300 text-slate-800 text-xs font-semibold rounded-xl transition-all"
+                  title="Update currently active document (auto-creates version backup)"
+                >
+                  Update Current
+                </button>
+                <button
+                  onClick={() => handleApplyTailored(true)}
                   disabled={applied}
                   className="inline-flex items-center gap-1.5 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-xl shadow-md transition-all"
+                  title="Creates an independent duplicate document tailored for this job"
                 >
                   <CheckCircle className="w-4 h-4" />
-                  <span>{applied ? 'Applied Successfully!' : 'Approve & Apply Tailoring'}</span>
+                  <span>{applied ? 'Created Copy!' : 'Create Tailored Copy'}</span>
                 </button>
               </div>
             </div>
