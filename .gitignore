@@ -78,7 +78,5 @@ uploads/*
 tmp/
 temp/
 *.tmp
-templates/
-templates/
-
+/templates/
 reference-templates/
