@@ -1,5 +1,5 @@
 {
-  "buildCommand": "npm run build --workspace=@ai-resume/web",
+  "buildCommand": "npm run build --workspace=@ai-resume/core && npm run build --workspace=@ai-resume/templates && npm run build --workspace=@ai-resume/web",
   "outputDirectory": "apps/web/dist",
   "rewrites": [
     {
