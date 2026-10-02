@@ -24,7 +24,7 @@ export const Template15: React.FC<TemplateProps> = ({ data }) => {
   // Template 15: Deedy Two-Column Asymmetric Layout
   if ("template_15" === "template_15") {
     return (
-      <div className={`bg-white text-gray-900 p-8 shadow-sm print:shadow-none print:p-0 mx-auto leading-normal ${pageClass} ${fontClass}`}>
+      <div className={`bg-white text-gray-900 p-8 shadow-sm print:shadow-none print:p-8 mx-auto leading-normal ${pageClass} ${fontClass}`}>
         {/* Header */}
         <div className="border-b-2 pb-2 mb-4 flex justify-between items-baseline" style={{ borderColor: "#2563eb" }}>
           <div>
@@ -133,7 +133,7 @@ export const Template15: React.FC<TemplateProps> = ({ data }) => {
 
 
   return (
-    <div className={`bg-white text-gray-900 p-8 shadow-sm print:shadow-none print:p-0 mx-auto leading-normal ${pageClass} ${fontClass}`}>
+    <div className={`bg-white text-gray-900 p-8 shadow-sm print:shadow-none print:p-8 mx-auto leading-normal ${pageClass} ${fontClass}`}>
       {/* Header */}
       <header className="text-center mb-3">
         <h1 className="text-2xl font-bold tracking-tight uppercase" style={{ color: '#2563eb' }}>

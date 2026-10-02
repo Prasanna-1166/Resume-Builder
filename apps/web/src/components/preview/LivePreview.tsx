@@ -23,7 +23,14 @@ export const LivePreview: React.FC<LivePreviewProps> = ({ onOpenGallery }) => {
 
   const handlePrintPdf = () => {
     track('PDF_EXPORTED', { templateId: activeDocument.templateId, status: 'SUCCESS', metadata: { documentType: docType } });
+    const originalTitle = document.title;
+    const candidateName = activeDocument.personalInfo.fullName?.replace(/\s+/g, '_') || 'Document';
+    const fileSuffix = docType === 'COVER_LETTER' ? 'Cover_Letter' : (docType === 'CV' ? 'CV' : 'Resume');
+    document.title = `${candidateName}_${fileSuffix}`;
     window.print();
+    setTimeout(() => {
+      document.title = originalTitle;
+    }, 1000);
   };
 
   const handleExportDocx = async () => {
@@ -134,10 +141,13 @@ export const LivePreview: React.FC<LivePreviewProps> = ({ onOpenGallery }) => {
       </div>
 
       {/* Printable Preview Canvas */}
-      <div className="flex-1 bg-gray-200/80 rounded-xl border border-gray-300 p-4 sm:p-6 overflow-auto flex justify-center items-start min-h-[600px]">
+      <div className="preview-canvas-wrapper flex-1 bg-slate-200/90 rounded-xl border border-slate-300 p-4 sm:p-6 overflow-auto flex justify-center items-start min-h-[600px]">
         <div
-          className="resume-print-container origin-top transition-transform duration-150 shadow-xl rounded-sm"
-          style={{ transform: `scale(${zoomLevel / 100})` }}
+          className="resume-print-container origin-top transition-transform duration-150 shadow-2xl rounded-sm ring-1 ring-black/5"
+          style={{
+            transform: `scale(${zoomLevel / 100})`,
+            transformOrigin: 'top center'
+          }}
         >
           <TemplateComponent data={activeDocument} />
         </div>

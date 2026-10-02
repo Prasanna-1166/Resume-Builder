@@ -11,38 +11,95 @@
 /* Print and High-Fidelity PDF Export Styles */
 @media print {
   @page {
-    margin: 0;
     size: auto;
+    margin: 0mm;
   }
 
+  html,
   body {
     background: #ffffff !important;
+    background-color: #ffffff !important;
     color: #000000 !important;
     padding: 0 !important;
     margin: 0 !important;
+    width: 100% !important;
+    height: auto !important;
+    min-height: 0 !important;
+    overflow: visible !important;
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
   }
 
-  /* Hide everything except the resume printable container */
+  /* Hide app chrome, toolbars, editor panels, navigation, modals, and buttons */
   nav,
-  header,
+  header.no-print,
   footer,
   aside,
   .no-print,
   button,
+  input,
+  select,
+  textarea,
   .editor-sidebar,
-  .action-bar {
+  .action-bar,
+  [role="dialog"],
+  .modal-backdrop {
     display: none !important;
   }
 
-  .resume-print-container {
-    width: 100% !important;
-    max-width: 100% !important;
+  /* Flatten all parent wrappers to prevent any background colors, borders, paddings, sticky offsets, or scale transform issues */
+  #root,
+  body > div,
+  main,
+  .max-w-7xl,
+  .grid,
+  .lg\:col-span-7,
+  .lg\:col-span-5,
+  .sticky,
+  .flex-1,
+  .preview-canvas-wrapper {
+    display: block !important;
+    position: static !important;
+    top: auto !important;
+    left: auto !important;
+    right: auto !important;
+    bottom: auto !important;
     margin: 0 !important;
+    padding: 0 !important;
+    border: none !important;
+    background: transparent !important;
+    background-color: transparent !important;
+    box-shadow: none !important;
+    max-width: none !important;
+    width: 100% !important;
+    height: auto !important;
+    min-height: 0 !important;
+    overflow: visible !important;
+    transform: none !important;
+  }
+
+  .resume-print-container {
+    position: static !important;
+    transform: none !important;
+    margin: 0 auto !important;
     padding: 0 !important;
     box-shadow: none !important;
     border: none !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    overflow: visible !important;
+    display: block !important;
+    page-break-after: auto;
+    break-after: auto;
+  }
+
+  .resume-print-container > div {
+    box-shadow: none !important;
+    border: none !important;
+    margin: 0 auto !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-height: 0 !important;
   }
 }
 
