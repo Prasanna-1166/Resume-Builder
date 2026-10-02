@@ -15,11 +15,22 @@ function getAuthHeaders(): Record<string, string> {
   return headers;
 }
 
+async function request(endpoint: string, options: RequestInit = {}): Promise<Response> {
+  try {
+    const res = await fetch(`${API_BASE}${endpoint}`, options);
+    return res;
+  } catch (err: any) {
+    const targetUrl = `${API_BASE}${endpoint}`;
+    console.error(`[API Network Error] Target: ${targetUrl}`, err);
+    throw new Error(`Unable to connect to backend at ${API_BASE}. Please verify your Render service is active.`);
+  }
+}
+
 export const apiClient = {
   // Templates
   async getTemplates(params?: { category?: string; status?: string; search?: string }) {
     const query = new URLSearchParams(params as any).toString();
-    const res = await fetch(`${API_BASE}/templates?${query}`, {
+    const res = await request(`/templates?${query}`, {
       credentials: 'include',
       headers: {
         ...getAuthHeaders()
@@ -30,7 +41,7 @@ export const apiClient = {
   },
 
   async getTemplateById(id: string) {
-    const res = await fetch(`${API_BASE}/templates/${id}`, {
+    const res = await request(`/templates/${id}`, {
       credentials: 'include',
       headers: {
         ...getAuthHeaders()
@@ -42,7 +53,7 @@ export const apiClient = {
 
   // AI Services
   async improveSummary(summary: string, targetRole?: string) {
-    const res = await fetch(`${API_BASE}/ai/improve-summary`, {
+    const res = await request(`/ai/improve-summary`, {
       method: 'POST',
       headers: { 
         'Content-Type': 'application/json',
@@ -56,7 +67,7 @@ export const apiClient = {
   },
 
   async improveBullet(bullet: string, context?: string) {
-    const res = await fetch(`${API_BASE}/ai/improve-bullet`, {
+    const res = await request(`/ai/improve-bullet`, {
       method: 'POST',
       headers: { 
         'Content-Type': 'application/json',
@@ -70,7 +81,7 @@ export const apiClient = {
   },
 
   async suggestSkills(currentSkills: string[], targetRole?: string, experienceSnippet?: string) {
-    const res = await fetch(`${API_BASE}/ai/suggest-skills`, {
+    const res = await request(`/ai/suggest-skills`, {
       method: 'POST',
       headers: { 
         'Content-Type': 'application/json',
@@ -84,7 +95,7 @@ export const apiClient = {
   },
 
   async analyzeJob(jobDescription: string, userSkills: string[]) {
-    const res = await fetch(`${API_BASE}/ai/analyze-job`, {
+    const res = await request(`/ai/analyze-job`, {
       method: 'POST',
       headers: { 
         'Content-Type': 'application/json',
@@ -105,7 +116,7 @@ export const apiClient = {
     skills?: string[];
     experienceSnippet?: string;
   }) {
-    const res = await fetch(`${API_BASE}/ai/generate-cover-letter`, {
+    const res = await request(`/ai/generate-cover-letter`, {
       method: 'POST',
       headers: { 
         'Content-Type': 'application/json',
@@ -124,7 +135,7 @@ export const apiClient = {
     targetRole?: string;
     targetCompany?: string;
   }) {
-    const res = await fetch(`${API_BASE}/ai/improve-cover-letter`, {
+    const res = await request(`/ai/improve-cover-letter`, {
       method: 'POST',
       headers: { 
         'Content-Type': 'application/json',
@@ -144,7 +155,7 @@ export const apiClient = {
     targetRole?: string;
     targetCompany?: string;
   }) {
-    const res = await fetch(`${API_BASE}/ai/tailor-document`, {
+    const res = await request(`/ai/tailor-document`, {
       method: 'POST',
       headers: { 
         'Content-Type': 'application/json',
@@ -161,7 +172,7 @@ export const apiClient = {
     domain: string;
     currentCv: any;
   }) {
-    const res = await fetch(`${API_BASE}/ai/suggest-cv-sections`, {
+    const res = await request(`/ai/suggest-cv-sections`, {
       method: 'POST',
       headers: { 
         'Content-Type': 'application/json',
@@ -261,15 +272,18 @@ export const apiClient = {
 
   // Admin Authentication & Profile
   async adminLogin(credentials: { email: string; password: string }) {
-    const res = await fetch(`${API_BASE}/auth/login`, {
+    const res = await request('/auth/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(credentials),
       credentials: 'include'
     });
     if (!res.ok) {
-      const err = await res.json().catch(() => ({ error: 'Login failed' }));
-      throw new Error(err.error || 'Login failed');
+      if (res.status === 404) {
+        throw new Error(`Backend route /api/auth/login not found (HTTP 404). Please ensure your Render Web Service is active.`);
+      }
+      const err = await res.json().catch(() => ({ error: `Login failed (HTTP ${res.status})` }));
+      throw new Error(err.error || `Login failed (HTTP ${res.status})`);
     }
     const data = await res.json();
     if (data?.token && typeof window !== 'undefined') {
