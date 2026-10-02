@@ -143,6 +143,7 @@ export const LivePreview: React.FC<LivePreviewProps> = ({ onOpenGallery }) => {
       {/* Printable Preview Canvas */}
       <div className="preview-canvas-wrapper flex-1 bg-slate-200/90 rounded-xl border border-slate-300 p-4 sm:p-6 overflow-auto flex justify-center items-start min-h-[600px]">
         <div
+          id="resume-printable-area"
           className="resume-print-container origin-top transition-transform duration-150 shadow-2xl rounded-sm ring-1 ring-black/5"
           style={{
             transform: `scale(${zoomLevel / 100})`,
