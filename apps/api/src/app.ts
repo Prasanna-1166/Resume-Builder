@@ -29,25 +29,17 @@ app.use(helmet({
   crossOriginResourcePolicy: { policy: 'cross-origin' }
 }));
 
+// Robust CORS supporting custom domains (e.g. dpdns.org), Vercel previews, and localhost
 app.use(cors({
   origin: (origin, callback) => {
-    // Allow server-to-server, curl, mobile, and same-origin requests without Origin header
-    if (!origin) {
-      return callback(null, true);
-    }
-    const cleanOrigin = origin.replace(/\/$/, '');
-    if (
-      allowedOrigins.includes(cleanOrigin) ||
-      allowedOrigins.includes('*') ||
-      cleanOrigin.endsWith('.vercel.app')
-    ) {
-      return callback(null, true);
-    }
-    // Reject other origins in strict mode
-    return callback(new Error(`Origin ${origin} not permitted by CORS policy`));
+    // Allow any origin that accesses the API (reflects the origin for credential support)
+    callback(null, true);
   },
-  credentials: true
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin']
 }));
+app.options('*', cors());
 
 app.use(cookieParser());
 app.use(express.json({ limit: '10mb' }));
