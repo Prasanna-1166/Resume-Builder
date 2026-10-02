@@ -11,6 +11,8 @@
     "dev": "npm run dev --workspace=apps/web",
     "dev:all": "concurrently \"npm run dev --workspace=apps/api\" \"npm run dev --workspace=apps/web\"",
     "build": "npm run build --workspaces",
+    "build:api": "npm run build --workspace=@ai-resume/core && npm run build --workspace=@ai-resume/api",
+    "start": "npm run start --workspace=@ai-resume/api",
     "test": "npx tsx --test tests/*.test.ts tests/*.test.tsx",
     "test:unit": "npx tsx --test tests/engine.test.ts tests/auth.test.ts tests/export.test.ts tests/ai_mock.test.ts tests/upload_security.test.ts",
     "test:render": "npx tsx --test tests/render.test.tsx tests/switching.test.ts",
