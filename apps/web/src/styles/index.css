@@ -32,7 +32,6 @@
 
   /* Completely hide all UI elements, navigation, sidebar, editors, toolbars, buttons, modals */
   nav,
-  header,
   footer,
   aside,
   .no-print,
@@ -57,6 +56,11 @@
   /* Exclusively reveal and position the resume printable area */
   #resume-printable-area,
   #resume-printable-area * {
+    visibility: visible !important;
+  }
+
+  #resume-printable-area header {
+    display: block !important;
     visibility: visible !important;
   }
 
