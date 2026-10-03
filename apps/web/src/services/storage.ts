@@ -19,8 +19,13 @@ export interface DraftSummary {
   category: DocumentCategory;
   templateId: string;
   updatedAt: string;
+  createdAt?: string;
   targetRole?: string;
   targetCompany?: string;
+  parentId?: string;
+  parentTitle?: string;
+  isMaster?: boolean;
+  versionLabel?: string;
 }
 
 export const storageService = {
@@ -32,6 +37,10 @@ export const storageService = {
           ...studentFresherFixture,
           documentType: 'RESUME',
           category: 'STUDENT',
+          isMaster: true,
+          versionLabel: 'Master Resume',
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
           versions: []
         };
         const initialDocs: CareerDocument[] = [initialResume];
@@ -40,8 +49,8 @@ export const storageService = {
         return initialDocs;
       }
       const parsed: any[] = JSON.parse(raw);
-      // Migrate / ensure documentType & category are present
-      return parsed.map(item => {
+      // Migrate / ensure documentType, category, and versioning metadata are present
+      return parsed.map((item, index) => {
         if (!item.documentType) {
           item.documentType = 'RESUME';
         }
@@ -50,6 +59,15 @@ export const storageService = {
         }
         if (!item.versions) {
           item.versions = [];
+        }
+        if (!item.createdAt) {
+          item.createdAt = item.updatedAt || new Date().toISOString();
+        }
+        if (item.isMaster === undefined && !item.parentId) {
+          item.isMaster = true;
+          if (!item.versionLabel) {
+            item.versionLabel = 'Master Resume';
+          }
         }
         return item;
       });
@@ -110,6 +128,9 @@ export const storageService = {
         documentType: 'COVER_LETTER',
         category,
         templateId: defaultTemplate,
+        isMaster: true,
+        versionLabel: 'Original',
+        createdAt: now,
         updatedAt: now,
         versions: []
       };
@@ -128,6 +149,9 @@ export const storageService = {
         documentType: 'CV',
         category,
         templateId: defaultTemplate,
+        isMaster: true,
+        versionLabel: 'Master CV',
+        createdAt: now,
         updatedAt: now,
         research: [
           {
@@ -177,6 +201,9 @@ export const storageService = {
       documentType: 'RESUME',
       category,
       templateId: defaultTemplate,
+      isMaster: true,
+      versionLabel: 'Master Resume',
+      createdAt: now,
       updatedAt: now,
       versions: []
     };
@@ -194,11 +221,15 @@ export const storageService = {
     const drafts = this.getDrafts();
     const source = drafts.find(d => d.id === id) || drafts[0] || studentFresherFixture;
     const type = source.documentType || 'RESUME';
+    const now = new Date().toISOString();
     const copy: CareerDocument = {
       ...JSON.parse(JSON.stringify(source)),
       id: `${type.toLowerCase()}_${Date.now()}`,
       title: `${source.title} (Copy)`,
-      updatedAt: new Date().toISOString()
+      createdAt: now,
+      updatedAt: now,
+      isMaster: source.isMaster,
+      versionLabel: source.versionLabel ? `${source.versionLabel} (Copy)` : 'Copy'
     };
 
     drafts.unshift(copy);
@@ -207,15 +238,100 @@ export const storageService = {
     return copy;
   },
 
+  createTailoredCopy(
+    sourceId: string,
+    targetCompany?: string,
+    targetRole?: string,
+    newTitle?: string
+  ): CareerDocument {
+    const drafts = this.getDrafts();
+    const source = drafts.find(d => d.id === sourceId) || drafts[0] || studentFresherFixture;
+    const type = source.documentType || 'RESUME';
+    const now = new Date().toISOString();
+
+    const companyPart = targetCompany ? ` — ${targetCompany}` : '';
+    const rolePart = targetRole || source.targetRole || '';
+    const computedTitle = newTitle || (rolePart ? `${rolePart}${companyPart}` : `${source.title} (Tailored${companyPart})`);
+
+    const copy: CareerDocument = {
+      ...JSON.parse(JSON.stringify(source)),
+      id: `${type.toLowerCase()}_tailored_${Date.now()}`,
+      title: computedTitle,
+      parentId: source.id,
+      parentTitle: source.title,
+      isMaster: false,
+      versionLabel: targetCompany ? `Tailored: ${targetCompany}` : 'Tailored Version',
+      targetCompany: targetCompany || source.targetCompany,
+      targetRole: targetRole || source.targetRole,
+      createdAt: now,
+      updatedAt: now,
+      versions: []
+    };
+
+    drafts.unshift(copy);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(drafts));
+    localStorage.setItem(ACTIVE_DRAFT_ID_KEY, copy.id);
+    return copy;
+  },
+
+  renameDraft(id: string, newTitle: string): CareerDocument {
+    const drafts = this.getDrafts();
+    const doc = drafts.find(d => d.id === id);
+    if (!doc) throw new Error('Document not found');
+
+    doc.title = newTitle.trim() || doc.title;
+    doc.updatedAt = new Date().toISOString();
+    this.saveDraft(doc);
+    return doc;
+  },
+
+  setMaster(id: string, isMaster: boolean = true): CareerDocument {
+    const drafts = this.getDrafts();
+    const doc = drafts.find(d => d.id === id);
+    if (!doc) throw new Error('Document not found');
+
+    doc.isMaster = isMaster;
+    if (isMaster) {
+      doc.parentId = undefined;
+      doc.parentTitle = undefined;
+      doc.versionLabel = doc.versionLabel || 'Master Resume';
+    }
+    doc.updatedAt = new Date().toISOString();
+    this.saveDraft(doc);
+    return doc;
+  },
+
+  getMasterDrafts(): CareerDocument[] {
+    const drafts = this.getDrafts();
+    return drafts.filter(d => !d.parentId || d.isMaster);
+  },
+
+  getTailoredCopies(parentId: string): CareerDocument[] {
+    const drafts = this.getDrafts();
+    return drafts.filter(d => d.parentId === parentId);
+  },
+
   deleteDraft(id: string): CareerDocument[] {
     let drafts = this.getDrafts();
     drafts = drafts.filter(d => d.id !== id);
+
+    // If deleted document had children, detach parentId to keep children safe
+    drafts.forEach(d => {
+      if (d.parentId === id) {
+        d.parentId = undefined;
+        d.parentTitle = undefined;
+      }
+    });
 
     if (drafts.length === 0) {
       const initial: ResumeData = {
         ...studentFresherFixture,
         documentType: 'RESUME',
         category: 'STUDENT',
+        isMaster: true,
+        versionLabel: 'Master Resume',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
         versions: []
       };
       drafts = [initial];

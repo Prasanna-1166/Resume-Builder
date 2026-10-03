@@ -181,6 +181,7 @@ const AppContent: React.FC = () => {
                   <ResumeEditor
                     onOpenAiEnhance={handleOpenAiEnhance}
                     onOpenSkillSuggestions={() => setSkillModalOpen(true)}
+                    onOpenAtsAuditor={() => setAtsAuditorOpen(true)}
                   />
                 )}
               </div>

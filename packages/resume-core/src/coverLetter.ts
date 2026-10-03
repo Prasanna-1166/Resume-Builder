@@ -20,12 +20,18 @@ export interface CoverLetterData {
   category: DocumentCategory;
   templateId: string;
   updatedAt: string;
+  createdAt?: string;
+  parentId?: string;
+  parentTitle?: string;
+  isMaster?: boolean;
+  versionLabel?: string;
   
   personalInfo: PersonalInfo;
   recipient: RecipientInfo;
   
   date: string;
   jobTitle: string;
+  targetRole?: string;
   targetCompany: string;
   
   greeting: string;
@@ -44,6 +50,12 @@ export const CoverLetterSchema = z.object({
   category: z.string(),
   templateId: z.string(),
   updatedAt: z.string(),
+  createdAt: z.string().optional(),
+  parentId: z.string().optional(),
+  parentTitle: z.string().optional(),
+  isMaster: z.boolean().optional(),
+  versionLabel: z.string().optional(),
+  targetRole: z.string().optional(),
   personalInfo: z.object({
     fullName: z.string(),
     email: z.string(),

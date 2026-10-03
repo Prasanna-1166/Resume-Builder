@@ -25,7 +25,9 @@ export function runAtsAudit(data: ResumeData): AtsCheckResult {
       category: 'contact',
       title: 'Missing or Invalid Email',
       description: 'ATS parsers require a valid email to associate candidate records.',
-      suggestion: 'Provide a clean professional email address.'
+      suggestion: 'Provide a clean professional email address.',
+      actionTab: 'personal',
+      actionLabel: 'Add Email'
     });
   }
 
@@ -36,7 +38,9 @@ export function runAtsAudit(data: ResumeData): AtsCheckResult {
       category: 'contact',
       title: 'Missing Phone Number',
       description: 'Recruiters and automated schedulers look for a valid contact number.',
-      suggestion: 'Include your phone number with country and area code.'
+      suggestion: 'Include your phone number with country and area code.',
+      actionTab: 'personal',
+      actionLabel: 'Add Phone'
     });
   }
 
@@ -47,7 +51,9 @@ export function runAtsAudit(data: ResumeData): AtsCheckResult {
       category: 'contact',
       title: 'Missing Location / City',
       description: 'ATS geo-filters check candidate location for remote vs on-site compatibility.',
-      suggestion: 'Add City, State/Country (e.g. San Francisco, CA or London, UK).'
+      suggestion: 'Add City, State/Country (e.g. San Francisco, CA or London, UK).',
+      actionTab: 'personal',
+      actionLabel: 'Add Location'
     });
   }
 
@@ -59,7 +65,9 @@ export function runAtsAudit(data: ResumeData): AtsCheckResult {
       category: 'sections',
       title: 'Missing Standard Section: Education',
       description: 'Educational history is a core filter in applicant tracking systems.',
-      suggestion: 'Add your degree, institution, and graduation year.'
+      suggestion: 'Add your degree, institution, and graduation year.',
+      actionTab: 'education',
+      actionLabel: 'Add Education'
     });
   }
 
@@ -70,7 +78,9 @@ export function runAtsAudit(data: ResumeData): AtsCheckResult {
       category: 'sections',
       title: 'Missing Experience / Projects',
       description: 'A resume without work experience or technical projects may fail recruiter screening.',
-      suggestion: 'Add work experience, internships, or academic/personal projects.'
+      suggestion: 'Add work experience, internships, or academic/personal projects.',
+      actionTab: 'experience',
+      actionLabel: 'Add Experience'
     });
   }
 
@@ -82,7 +92,9 @@ export function runAtsAudit(data: ResumeData): AtsCheckResult {
       category: 'formatting',
       title: 'Lengthy Summary (>600 chars)',
       description: 'A concise 2–3 sentence executive summary is easier to scan quickly.',
-      suggestion: 'Condense your summary to focus strictly on your primary value proposition.'
+      suggestion: 'Condense your summary to focus strictly on your primary value proposition.',
+      actionTab: 'summary',
+      actionLabel: 'Edit Summary'
     });
   }
 
@@ -117,7 +129,9 @@ export function runAtsAudit(data: ResumeData): AtsCheckResult {
         category: 'formatting',
         title: 'Long Bullet Point (>250 chars)',
         description: 'Lengthy run-on bullet points reduce readability for human reviewers.',
-        suggestion: 'Condense into 1-2 punchy lines highlighting action and result.'
+        suggestion: 'Condense into 1-2 punchy lines highlighting action and result.',
+        actionTab: 'experience',
+        actionLabel: 'Edit Bullet'
       });
     }
   });
@@ -129,7 +143,9 @@ export function runAtsAudit(data: ResumeData): AtsCheckResult {
       category: 'formatting',
       title: 'First-Person Pronouns Detected',
       description: 'Traditional resume style avoids first-person pronouns ("I", "my", "we").',
-      suggestion: 'Begin bullet points directly with action verbs (e.g., "Led development of..." instead of "I led...").'
+      suggestion: 'Begin bullet points directly with action verbs (e.g., "Led development of..." instead of "I led...").',
+      actionTab: 'experience',
+      actionLabel: 'Edit Bullet'
     });
   }
 
@@ -142,7 +158,9 @@ export function runAtsAudit(data: ResumeData): AtsCheckResult {
       category: 'keywords',
       title: 'Low Action Verb Density',
       description: `Only ${Math.round(actionVerbRatio * 100)}% of bullets begin with recognized strong action verbs (e.g., "Engineered", "Spearheaded", "Delivered").`,
-      suggestion: 'Begin bullet points with dynamic past-tense action verbs.'
+      suggestion: 'Begin bullet points with dynamic past-tense action verbs.',
+      actionTab: 'experience',
+      actionLabel: 'Improve Verbs'
     });
   }
 
@@ -153,7 +171,9 @@ export function runAtsAudit(data: ResumeData): AtsCheckResult {
       category: 'keywords',
       title: 'No Quantifiable Metrics Detected',
       description: 'Resumes with numerical metrics (%, latency, users, revenue) perform significantly better in screenings.',
-      suggestion: 'Add factual numbers to highlight impact where applicable (e.g., "reduced build times by 35%").'
+      suggestion: 'Add factual numbers to highlight impact where applicable (e.g., "reduced build times by 35%").',
+      actionTab: 'experience',
+      actionLabel: 'Add Metrics'
     });
   }
 
@@ -181,7 +201,9 @@ export function runAtsAudit(data: ResumeData): AtsCheckResult {
       category: 'keywords',
       title: 'Duplicate Skills Detected',
       description: `Skills appear in multiple categories: ${Array.from(duplicateSkills).join(', ')}.`,
-      suggestion: 'Consolidate duplicate skills into a single relevant category.'
+      suggestion: 'Consolidate duplicate skills into a single relevant category.',
+      actionTab: 'skills',
+      actionLabel: 'Fix Duplicates'
     });
   }
 
@@ -193,7 +215,9 @@ export function runAtsAudit(data: ResumeData): AtsCheckResult {
       category: 'keywords',
       title: 'Low Keyword / Skill Count',
       description: 'ATS parsers match job qualifications against skills listed in your profile.',
-      suggestion: 'List at least 6-10 specific technologies, frameworks, and methodologies.'
+      suggestion: 'List at least 6-10 specific technologies, frameworks, and methodologies.',
+      actionTab: 'skills',
+      actionLabel: 'Add Skills'
     });
   }
 

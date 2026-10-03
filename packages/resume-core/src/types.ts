@@ -140,6 +140,11 @@ export interface ResumeData {
   targetRole?: string;
   targetCompany?: string;
   updatedAt: string;
+  createdAt?: string;
+  parentId?: string; // Links tailored copies to their master/base document
+  parentTitle?: string;
+  isMaster?: boolean; // Indicates a Master Resume
+  versionLabel?: string; // e.g. "Master", "Backend - Google", "v1.0"
   templateId: string;
   
   personalInfo: PersonalInfo;
@@ -189,6 +194,20 @@ export interface CompletenessItem {
   completed: boolean;
   required: boolean;
   message?: string;
+  category?: 'contact' | 'summary' | 'education' | 'experience' | 'projects' | 'skills' | 'structure' | 'scholarly';
+  severity?: 'critical' | 'warning' | 'info';
+  actionTab?: string; // Editor tab: 'personal' | 'summary' | 'education' | 'experience' | 'projects' | 'skills' | 'cv_sections'
+  actionLabel?: string; // e.g. 'Add Summary', 'Add Experience', 'Add Skills'
+}
+
+export interface ActionableRecommendation {
+  id: string;
+  title: string;
+  description: string;
+  severity: 'critical' | 'warning' | 'info';
+  category: 'contact' | 'summary' | 'education' | 'experience' | 'projects' | 'skills' | 'structure';
+  actionTab: string;
+  actionLabel: string;
 }
 
 export interface CompletenessReport {
@@ -198,6 +217,7 @@ export interface CompletenessReport {
   items: CompletenessItem[];
   missingCritical: string[];
   recommendations: string[];
+  actionableRecommendations?: ActionableRecommendation[];
 }
 
 export interface AtsCheckIssue {
@@ -207,6 +227,8 @@ export interface AtsCheckIssue {
   title: string;
   description: string;
   suggestion: string;
+  actionTab?: string;
+  actionLabel?: string;
 }
 
 export interface AtsCheckResult {

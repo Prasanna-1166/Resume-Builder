@@ -15,7 +15,15 @@ import {
   GraduationCap,
   Sparkles,
   Search,
-  Filter
+  Filter,
+  GitBranch,
+  Check,
+  ChevronDown,
+  ChevronRight,
+  ShieldCheck,
+  Building,
+  Target,
+  Clock
 } from 'lucide-react';
 import { apiClient } from '../../services/api';
 
@@ -32,12 +40,25 @@ export const DocumentDashboard: React.FC<DocumentDashboardProps> = ({
   onBrowseTemplates,
   onOpenVersionModal
 }) => {
-  const { drafts, activeDocument, switchDraft, createDocument, duplicateCurrentDraft, deleteCurrentDraft } = useResume();
+  const {
+    drafts,
+    activeDocument,
+    switchDraft,
+    createDocument,
+    createTailoredCopy,
+    renameDraft,
+    duplicateCurrentDraft,
+    deleteCurrentDraft
+  } = useResume();
 
   const [typeFilter, setTypeFilter] = useState<'ALL' | DocumentType>('ALL');
   const [categoryFilter, setCategoryFilter] = useState<string>('ALL');
   const [searchQuery, setSearchQuery] = useState('');
   const [createModalOpen, setCreateModalOpen] = useState(false);
+  const [tailorModalTarget, setTailorModalTarget] = useState<CareerDocument | null>(null);
+  const [renameTarget, setRenameTarget] = useState<{ id: string; currentTitle: string } | null>(null);
+  const [newRenameTitle, setNewRenameTitle] = useState('');
+  const [expandedMasters, setExpandedMasters] = useState<Record<string, boolean>>({});
 
   // New Document Modal Form State
   const [newType, setNewType] = useState<DocumentType>('RESUME');
@@ -45,21 +66,63 @@ export const DocumentDashboard: React.FC<DocumentDashboardProps> = ({
   const [newTitle, setNewTitle] = useState('');
   const [newTemplateId, setNewTemplateId] = useState('');
 
+  // Tailor Copy Form State
+  const [tailorCompany, setTailorCompany] = useState('');
+  const [tailorRole, setTailorRole] = useState('');
+
+  const toggleMasterExpand = (id: string) => {
+    setExpandedMasters(prev => ({
+      ...prev,
+      [id]: prev[id] === undefined ? false : !prev[id]
+    }));
+  };
+
   const filteredDrafts = drafts.filter(doc => {
     const docType = doc.documentType || 'RESUME';
     const matchesType = typeFilter === 'ALL' || docType === typeFilter;
     const matchesCategory = categoryFilter === 'ALL' || doc.category === categoryFilter;
-    const matchesSearch = !searchQuery || doc.title.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesSearch =
+      !searchQuery ||
+      doc.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (doc.targetCompany && doc.targetCompany.toLowerCase().includes(searchQuery.toLowerCase())) ||
+      (doc.targetRole && doc.targetRole.toLowerCase().includes(searchQuery.toLowerCase()));
     return matchesType && matchesCategory && matchesSearch;
   });
 
+  // Group into Master Documents and their Tailored Versions
+  const masterDocs = filteredDrafts.filter(d => !d.parentId || d.isMaster);
+  const orphanTailoredDocs = filteredDrafts.filter(d => d.parentId && !drafts.some(m => m.id === d.parentId));
+
   const handleCreate = (e: React.FormEvent) => {
     e.preventDefault();
-    const defaultTemplate = newType === 'COVER_LETTER' ? 'template_cl_modern' : newType === 'CV' ? 'template_cv_academic' : 'template_01';
+    const defaultTemplate =
+      newType === 'COVER_LETTER'
+        ? 'template_cl_modern'
+        : newType === 'CV'
+        ? 'template_cv_academic'
+        : 'template_01';
     createDocument(newType, newCategory, newTemplateId || defaultTemplate, newTitle);
     setCreateModalOpen(false);
     setNewTitle('');
     onOpenEditor();
+  };
+
+  const handleCreateTailoredCopySubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!tailorModalTarget) return;
+    const copy = createTailoredCopy(tailorModalTarget.id, tailorCompany, tailorRole);
+    setTailorModalTarget(null);
+    setTailorCompany('');
+    setTailorRole('');
+    onOpenEditor();
+  };
+
+  const handleRenameSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!renameTarget || !newRenameTitle.trim()) return;
+    renameDraft(renameTarget.id, newRenameTitle.trim());
+    setRenameTarget(null);
+    setNewRenameTitle('');
   };
 
   const handleExportDocx = async (doc: CareerDocument) => {
@@ -68,7 +131,12 @@ export const DocumentDashboard: React.FC<DocumentDashboardProps> = ({
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      const typeLabel = doc.documentType === 'COVER_LETTER' ? 'Cover_Letter' : doc.documentType === 'CV' ? 'CV' : 'Resume';
+      const typeLabel =
+        doc.documentType === 'COVER_LETTER'
+          ? 'Cover_Letter'
+          : doc.documentType === 'CV'
+          ? 'CV'
+          : 'Resume';
       a.download = `${(doc.title || 'Document').replace(/\s+/g, '_')}_${typeLabel}.docx`;
       document.body.appendChild(a);
       a.click();
@@ -87,13 +155,13 @@ export const DocumentDashboard: React.FC<DocumentDashboardProps> = ({
         <div>
           <div className="inline-flex items-center gap-2 bg-indigo-500/20 border border-indigo-500/30 rounded-full px-3 py-1 text-xs font-semibold text-indigo-300 mb-3">
             <Sparkles className="w-3.5 h-3.5" />
-            <span>Multi-Document Career Platform</span>
+            <span>Multi-Document Career Platform & Version Hierarchy</span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
-            My Career Documents
+            My Career Documents & Versions
           </h1>
           <p className="text-slate-300 text-sm mt-1 max-w-2xl">
-            Create, manage, and tailor ATS-optimized Resumes, Academic/Professional CVs, and targeted Cover Letters in one place.
+            Maintain Master Resumes while creating non-destructive company-specific tailored versions. Master documents remain protected.
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
@@ -147,7 +215,7 @@ export const DocumentDashboard: React.FC<DocumentDashboardProps> = ({
             <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
             <input
               type="text"
-              placeholder="Search documents..."
+              placeholder="Search documents & roles..."
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
               className="w-full pl-9 pr-3 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
@@ -169,15 +237,15 @@ export const DocumentDashboard: React.FC<DocumentDashboardProps> = ({
         </div>
       </div>
 
-      {/* Document Grid */}
-      {filteredDrafts.length === 0 ? (
+      {/* Document Version List & Hierarchy */}
+      {masterDocs.length === 0 && orphanTailoredDocs.length === 0 ? (
         <div className="bg-white rounded-2xl border border-dashed border-slate-300 p-12 text-center">
           <FileText className="w-12 h-12 text-slate-300 mx-auto mb-3" />
           <h3 className="text-base font-bold text-slate-900">No career documents found</h3>
           <p className="text-slate-500 text-xs mt-1 max-w-sm mx-auto">
             {searchQuery || categoryFilter !== 'ALL' || typeFilter !== 'ALL'
               ? 'Try adjusting your filters or search terms.'
-              : 'Create your first Resume, CV, or Cover Letter to get started.'}
+              : 'Create your first Master Resume, CV, or Cover Letter to get started.'}
           </p>
           <button
             onClick={() => setCreateModalOpen(true)}
@@ -188,11 +256,13 @@ export const DocumentDashboard: React.FC<DocumentDashboardProps> = ({
           </button>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredDrafts.map(doc => {
+        <div className="space-y-6">
+          {masterDocs.map(doc => {
             const docType = doc.documentType || 'RESUME';
             const isActive = doc.id === activeDocument.id;
             const meta = TEMPLATE_CATALOG.find(t => t.id === doc.templateId) || TEMPLATE_CATALOG[0];
+            const tailoredCopies = drafts.filter(d => d.parentId === doc.id);
+            const isExpanded = expandedMasters[doc.id] !== false;
 
             const typeColor =
               docType === 'COVER_LETTER'
@@ -204,16 +274,20 @@ export const DocumentDashboard: React.FC<DocumentDashboardProps> = ({
             return (
               <div
                 key={doc.id}
-                className={`bg-white rounded-2xl border transition-all duration-200 flex flex-col justify-between overflow-hidden shadow-sm hover:shadow-md ${
+                className={`bg-white rounded-2xl border transition-all duration-200 shadow-xs overflow-hidden ${
                   isActive ? 'border-indigo-600 ring-2 ring-indigo-600/10' : 'border-slate-200 hover:border-slate-300'
                 }`}
               >
+                {/* Master Card Main Block */}
                 <div className="p-5">
-                  {/* Top Bar: Badges */}
-                  <div className="flex items-center justify-between gap-2 mb-3">
-                    <div className="flex items-center gap-1.5">
-                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border uppercase tracking-wider ${typeColor}`}>
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-3">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full border uppercase tracking-wider ${typeColor}`}>
                         {docType === 'COVER_LETTER' ? 'Cover Letter' : docType}
+                      </span>
+                      <span className="text-[10px] font-extrabold bg-indigo-100 text-indigo-800 px-2 py-0.5 rounded-full border border-indigo-200 flex items-center gap-1">
+                        <ShieldCheck className="w-3 h-3 text-indigo-600" />
+                        <span>Master Document</span>
                       </span>
                       {doc.category && (
                         <span className="text-[10px] font-medium bg-slate-100 text-slate-700 px-2 py-0.5 rounded-full border border-slate-200">
@@ -222,54 +296,78 @@ export const DocumentDashboard: React.FC<DocumentDashboardProps> = ({
                       )}
                     </div>
                     {isActive && (
-                      <span className="text-[10px] font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full">
-                        Active
+                      <span className="text-[10px] font-bold text-indigo-600 bg-indigo-50 px-2.5 py-0.5 rounded-full border border-indigo-100">
+                        Currently Active
                       </span>
                     )}
                   </div>
 
-                  {/* Document Title */}
-                  <h3 className="text-base font-bold text-slate-900 truncate mb-1" title={doc.title}>
-                    {doc.title}
-                  </h3>
-
-                  {/* Candidate / Target Info */}
-                  <p className="text-xs text-slate-500 truncate mb-3">
-                    {doc.personalInfo.fullName || 'Unnamed Candidate'} {doc.personalInfo.professionalTitle ? `• ${doc.personalInfo.professionalTitle}` : ''}
-                  </p>
-
-                  {/* Template & Version Metadata */}
-                  <div className="bg-slate-50 rounded-xl p-3 text-xs text-slate-600 space-y-1 border border-slate-100 mb-2">
-                    <div className="flex justify-between items-center">
-                      <span className="text-slate-400">Template:</span>
-                      <span className="font-semibold text-slate-800">{meta?.name || doc.templateId}</span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-slate-400">Last Modified:</span>
-                      <span className="text-slate-700">{new Date(doc.updatedAt).toLocaleDateString()}</span>
-                    </div>
-                    {doc.versions && doc.versions.length > 0 && (
-                      <div className="flex justify-between items-center text-indigo-600">
-                        <span className="text-slate-400">Snapshots:</span>
-                        <span className="font-semibold">{doc.versions.length} saved version{doc.versions.length > 1 ? 's' : ''}</span>
+                  <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        <h3 className="text-lg font-bold text-slate-900" title={doc.title}>
+                          {doc.title}
+                        </h3>
+                        <button
+                          onClick={() => {
+                            setRenameTarget({ id: doc.id, currentTitle: doc.title });
+                            setNewRenameTitle(doc.title);
+                          }}
+                          className="p-1 text-slate-400 hover:text-slate-600 rounded"
+                          title="Rename document"
+                        >
+                          <Edit3 className="w-3.5 h-3.5" />
+                        </button>
                       </div>
-                    )}
+                      <p className="text-xs text-slate-500 mt-0.5">
+                        {doc.personalInfo.fullName || 'Candidate'} {doc.personalInfo.professionalTitle ? `• ${doc.personalInfo.professionalTitle}` : ''}
+                      </p>
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-3 text-xs text-slate-500 bg-slate-50 px-3 py-2 rounded-xl border border-slate-100">
+                      <div>
+                        <span className="text-slate-400">Template:</span>{' '}
+                        <strong className="text-slate-700">{meta?.name || doc.templateId}</strong>
+                      </div>
+                      <div>
+                        <span className="text-slate-400">Updated:</span>{' '}
+                        <strong className="text-slate-700">{new Date(doc.updatedAt).toLocaleDateString()}</strong>
+                      </div>
+                      {tailoredCopies.length > 0 && (
+                        <div className="text-indigo-600 font-bold">
+                          {tailoredCopies.length} Tailored Version{tailoredCopies.length > 1 ? 's' : ''}
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
 
-                {/* Actions Footer */}
-                <div className="bg-slate-50/80 px-5 py-3 border-t border-slate-100 flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-1.5">
+                {/* Master Action Bar */}
+                <div className="bg-slate-50/90 px-5 py-3 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
                     <button
                       onClick={() => {
                         switchDraft(doc.id);
                         onOpenEditor();
                       }}
-                      className="inline-flex items-center gap-1 bg-indigo-600 hover:bg-indigo-500 text-white text-xs px-3 py-1.5 rounded-lg font-semibold shadow-sm transition-all"
+                      className="inline-flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs px-3.5 py-1.5 rounded-lg font-bold shadow-sm transition-all"
                     >
                       <Edit3 className="w-3.5 h-3.5" />
-                      <span>Edit</span>
+                      <span>Edit Master</span>
                     </button>
+
+                    <button
+                      onClick={() => {
+                        setTailorModalTarget(doc);
+                        setTailorRole(doc.targetRole || '');
+                        setTailorCompany('');
+                      }}
+                      className="inline-flex items-center gap-1.5 bg-white hover:bg-indigo-50 text-indigo-700 border border-indigo-200 text-xs px-3 py-1.5 rounded-lg font-semibold transition-all shadow-2xs"
+                    >
+                      <GitBranch className="w-3.5 h-3.5 text-indigo-600" />
+                      <span>Create Tailored Copy</span>
+                    </button>
+
                     <button
                       onClick={() => {
                         switchDraft(doc.id);
@@ -279,6 +377,7 @@ export const DocumentDashboard: React.FC<DocumentDashboardProps> = ({
                       title="Live Preview"
                     >
                       <FileText className="w-3.5 h-3.5 text-slate-500" />
+                      <span>Preview</span>
                     </button>
                   </div>
 
@@ -286,7 +385,7 @@ export const DocumentDashboard: React.FC<DocumentDashboardProps> = ({
                     <button
                       onClick={() => onOpenVersionModal(doc.id)}
                       className="p-1.5 text-slate-500 hover:text-indigo-600 hover:bg-white rounded-md transition-all border border-transparent hover:border-slate-200"
-                      title="Version Snapshots"
+                      title="Version Snapshots & History"
                     >
                       <History className="w-4 h-4" />
                     </button>
@@ -310,22 +409,216 @@ export const DocumentDashboard: React.FC<DocumentDashboardProps> = ({
                     {drafts.length > 1 && (
                       <button
                         onClick={() => {
-                          if (confirm(`Are you sure you want to delete "${doc.title}"?`)) {
+                          if (confirm(`Are you sure you want to delete Master Resume "${doc.title}"?`)) {
                             switchDraft(doc.id);
                             deleteCurrentDraft();
                           }
                         }}
                         className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-all"
-                        title="Delete Document"
+                        title="Delete Master Document"
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>
                     )}
                   </div>
                 </div>
+
+                {/* Nested Tailored Copies (Master-Branch Structure) */}
+                {tailoredCopies.length > 0 && (
+                  <div className="border-t border-slate-100 bg-slate-50/40 p-4">
+                    <div
+                      className="flex items-center justify-between cursor-pointer select-none mb-3"
+                      onClick={() => toggleMasterExpand(doc.id)}
+                    >
+                      <span className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
+                        <GitBranch className="w-3.5 h-3.5 text-indigo-600" />
+                        <span>Tailored Versions for Applications ({tailoredCopies.length})</span>
+                      </span>
+                      <div className="text-xs text-slate-400 flex items-center gap-1">
+                        <span>{isExpanded ? 'Collapse' : 'Expand'}</span>
+                        {isExpanded ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
+                      </div>
+                    </div>
+
+                    {isExpanded && (
+                      <div className="space-y-2 pl-2 border-l-2 border-indigo-200">
+                        {tailoredCopies.map(copy => {
+                          const isCopyActive = copy.id === activeDocument.id;
+                          return (
+                            <div
+                              key={copy.id}
+                              className={`bg-white rounded-xl p-3 border flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 shadow-2xs hover:border-indigo-300 transition-all ${
+                                isCopyActive ? 'border-indigo-500 ring-1 ring-indigo-500/20' : 'border-slate-200'
+                              }`}
+                            >
+                              <div className="flex-1">
+                                <div className="flex items-center gap-2">
+                                  <span className="text-[10px] font-bold bg-amber-50 text-amber-800 border border-amber-200 px-2 py-0.2 rounded-full uppercase">
+                                    {copy.versionLabel || 'Tailored Copy'}
+                                  </span>
+                                  {isCopyActive && (
+                                    <span className="text-[9.5px] font-bold text-indigo-600 bg-indigo-50 px-2 py-0.2 rounded-full">
+                                      Active
+                                    </span>
+                                  )}
+                                </div>
+                                <h4 className="text-sm font-bold text-slate-900 mt-1 flex items-center gap-1.5">
+                                  <span>{copy.title}</span>
+                                  <button
+                                    onClick={() => {
+                                      setRenameTarget({ id: copy.id, currentTitle: copy.title });
+                                      setNewRenameTitle(copy.title);
+                                    }}
+                                    className="p-0.5 text-slate-400 hover:text-slate-600"
+                                    title="Rename"
+                                  >
+                                    <Edit3 className="w-3 h-3" />
+                                  </button>
+                                </h4>
+                                <p className="text-[11px] text-slate-500 flex items-center gap-2 mt-0.5">
+                                  {copy.targetCompany && (
+                                    <span className="flex items-center gap-1 font-semibold text-slate-700">
+                                      <Building className="w-3 h-3 text-slate-400" />
+                                      <span>{copy.targetCompany}</span>
+                                    </span>
+                                  )}
+                                  <span>Modified: {new Date(copy.updatedAt).toLocaleDateString()}</span>
+                                </p>
+                              </div>
+
+                              <div className="flex items-center gap-2">
+                                <button
+                                  onClick={() => {
+                                    switchDraft(copy.id);
+                                    onOpenEditor();
+                                  }}
+                                  className="inline-flex items-center gap-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs px-3 py-1.5 rounded-lg font-bold transition-all border border-indigo-100"
+                                >
+                                  <Edit3 className="w-3 h-3" />
+                                  <span>Edit Copy</span>
+                                </button>
+                                <button
+                                  onClick={() => handleExportDocx(copy)}
+                                  className="p-1.5 text-slate-500 hover:text-emerald-600 hover:bg-slate-50 rounded-md transition-all border border-slate-200"
+                                  title="Export DOCX"
+                                >
+                                  <Download className="w-3.5 h-3.5" />
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    if (confirm(`Delete tailored copy "${copy.title}"? Your master resume will remain untouched.`)) {
+                                      switchDraft(copy.id);
+                                      deleteCurrentDraft();
+                                    }
+                                  }}
+                                  className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-all"
+                                  title="Delete Tailored Copy (Master remains safe)"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/* Rename Document Modal */}
+      {renameTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-5 border border-slate-100">
+            <h3 className="text-base font-bold text-slate-900 mb-1">Rename Document</h3>
+            <p className="text-xs text-slate-500 mb-4">Enter a descriptive title for this resume or version.</p>
+
+            <form onSubmit={handleRenameSubmit} className="space-y-4">
+              <input
+                type="text"
+                required
+                value={newRenameTitle}
+                onChange={e => setNewRenameTitle(e.target.value)}
+                className="w-full px-3 py-2 text-xs border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                autoFocus
+              />
+              <div className="flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setRenameTarget(null)}
+                  className="px-3 py-1.5 text-xs text-slate-600 hover:bg-slate-100 rounded-lg font-medium"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-1.5 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-500 rounded-lg shadow-sm"
+                >
+                  Save Title
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Create Tailored Copy Modal */}
+      {tailorModalTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 border border-slate-100">
+            <div className="flex items-center gap-2 mb-2">
+              <GitBranch className="w-5 h-5 text-indigo-600" />
+              <h3 className="text-base font-bold text-slate-900">Create Tailored Copy</h3>
+            </div>
+            <p className="text-xs text-slate-500 mb-4">
+              Creates a separate copy branched from <strong>{tailorModalTarget.title}</strong>. Your master resume will remain protected.
+            </p>
+
+            <form onSubmit={handleCreateTailoredCopySubmit} className="space-y-3.5">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Target Company (Optional)</label>
+                <input
+                  type="text"
+                  placeholder="e.g. Google, Stripe, Meta"
+                  value={tailorCompany}
+                  onChange={e => setTailorCompany(e.target.value)}
+                  className="w-full px-3 py-2 text-xs border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Target Role Title (Optional)</label>
+                <input
+                  type="text"
+                  placeholder="e.g. Senior Backend Engineer"
+                  value={tailorRole}
+                  onChange={e => setTailorRole(e.target.value)}
+                  className="w-full px-3 py-2 text-xs border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setTailorModalTarget(null)}
+                  className="px-3 py-1.5 text-xs text-slate-600 hover:bg-slate-100 rounded-lg font-medium"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-500 rounded-lg shadow-md flex items-center gap-1.5"
+                >
+                  <Copy className="w-3.5 h-3.5" />
+                  <span>Create Copy & Edit</span>
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
 
@@ -436,7 +729,13 @@ export const DocumentDashboard: React.FC<DocumentDashboardProps> = ({
                 </label>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                   {TEMPLATE_CATALOG.filter(t => (t.documentType || 'RESUME') === newType).map(tpl => {
-                    const isSelected = (newTemplateId || (newType === 'COVER_LETTER' ? 'template_cl_modern' : newType === 'CV' ? 'template_cv_academic' : 'template_01')) === tpl.id;
+                    const isSelected =
+                      (newTemplateId ||
+                        (newType === 'COVER_LETTER'
+                          ? 'template_cl_modern'
+                          : newType === 'CV'
+                          ? 'template_cv_academic'
+                          : 'template_01')) === tpl.id;
                     return (
                       <div
                         key={tpl.id}
@@ -516,3 +815,4 @@ export const DocumentDashboard: React.FC<DocumentDashboardProps> = ({
     </div>
   );
 };
+

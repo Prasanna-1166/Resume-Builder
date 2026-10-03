@@ -25,6 +25,9 @@ interface ResumeContextType {
   atsResult: AtsCheckResult;
   isSaving: boolean;
   lastSavedAt: string | null;
+  editorActiveTab: string;
+  setEditorActiveTab: (tab: string) => void;
+  navigateToEditorSection: (tab: string) => void;
   updateActiveDocument: (updater: (prev: CareerDocument) => CareerDocument) => void;
   updateResumeData: (updater: (prev: ResumeData) => ResumeData) => void;
   updateCoverLetterData: (updater: (prev: CoverLetterData) => CoverLetterData) => void;
@@ -33,6 +36,8 @@ interface ResumeContextType {
   switchDraft: (draftId: string) => void;
   createNewDraft: (templateId?: string) => void;
   createDocument: (type: DocumentType, category: DocumentCategory, templateId?: string, title?: string) => CareerDocument;
+  createTailoredCopy: (sourceId: string, targetCompany?: string, targetRole?: string, newTitle?: string) => CareerDocument;
+  renameDraft: (id: string, newTitle: string) => void;
   duplicateCurrentDraft: () => void;
   deleteCurrentDraft: () => void;
   saveVersionSnapshot: (versionName: string, tag?: string, notes?: string) => void;
@@ -45,6 +50,7 @@ const ResumeContext = createContext<ResumeContextType | undefined>(undefined);
 export const ResumeProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [drafts, setDrafts] = useState<CareerDocument[]>(() => storageService.getDrafts());
   const [activeDocument, setActiveDocument] = useState<CareerDocument>(() => storageService.getActiveDraft());
+  const [editorActiveTab, setEditorActiveTab] = useState<string>('personal');
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [lastSavedAt, setLastSavedAt] = useState<string | null>(new Date().toLocaleTimeString());
   const lastSaveTrackTime = useRef<number>(0);
@@ -86,6 +92,10 @@ export const ResumeProvider: React.FC<{ children: ReactNode }> = ({ children }) 
 
     return () => clearTimeout(timer);
   }, [activeDocument]);
+
+  const navigateToEditorSection = useCallback((tab: string) => {
+    setEditorActiveTab(tab);
+  }, []);
 
   const updateActiveDocument = useCallback((updater: (prev: CareerDocument) => CareerDocument) => {
     setActiveDocument(prev => updater(prev));
@@ -138,6 +148,22 @@ export const ResumeProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     createDocument('RESUME', 'STUDENT', templateId);
   }, [createDocument]);
 
+  const createTailoredCopy = useCallback((sourceId: string, targetCompany?: string, targetRole?: string, newTitle?: string): CareerDocument => {
+    const copy = storageService.createTailoredCopy(sourceId, targetCompany, targetRole, newTitle);
+    setActiveDocument(copy);
+    setDrafts(storageService.getDrafts());
+    track('RESUME_CREATED', { templateId: copy.templateId, metadata: { source: 'tailored_copy', targetCompany, targetRole } });
+    return copy;
+  }, []);
+
+  const renameDraft = useCallback((id: string, newTitle: string) => {
+    const updated = storageService.renameDraft(id, newTitle);
+    if (activeDocument.id === id) {
+      setActiveDocument(updated);
+    }
+    setDrafts(storageService.getDrafts());
+  }, [activeDocument.id]);
+
   const duplicateCurrentDraft = useCallback(() => {
     const copy = storageService.duplicateDraft(activeDocument.id);
     setActiveDocument(copy);
@@ -183,6 +209,9 @@ export const ResumeProvider: React.FC<{ children: ReactNode }> = ({ children }) 
         atsResult,
         isSaving,
         lastSavedAt,
+        editorActiveTab,
+        setEditorActiveTab,
+        navigateToEditorSection,
         updateActiveDocument,
         updateResumeData,
         updateCoverLetterData,
@@ -191,6 +220,8 @@ export const ResumeProvider: React.FC<{ children: ReactNode }> = ({ children }) 
         switchDraft,
         createNewDraft,
         createDocument,
+        createTailoredCopy,
+        renameDraft,
         duplicateCurrentDraft,
         deleteCurrentDraft,
         saveVersionSnapshot,

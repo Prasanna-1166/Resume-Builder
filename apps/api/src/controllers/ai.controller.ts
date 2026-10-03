@@ -44,36 +44,106 @@ function getDeterministicSkills(targetRole?: string) {
   return ['TypeScript', 'React', 'Node.js', 'PostgreSQL', 'Docker', 'REST APIs', 'Git', 'Tailwind CSS'];
 }
 
-function getDeterministicJobAnalysis(jobDescription: string, userSkills?: string[]) {
+export function getDeterministicJobAnalysis(jobDescription: string, userSkills?: string[]) {
   const lowerJD = jobDescription.toLowerCase();
   const techKeywords = [
     'react', 'node.js', 'typescript', 'javascript', 'python', 'sql', 'postgresql', 
-    'mongodb', 'docker', 'kubernetes', 'aws', 'azure', 'git', 'rest', 'graphql', 
-    'tailwind', 'java', 'c++', 'go', 'ci/cd', 'agile', 'testing', 'linux', 'microservices'
+    'mongodb', 'docker', 'kubernetes', 'aws', 'azure', 'git', 'rest', 'rest apis', 'graphql', 
+    'tailwind', 'java', 'c++', 'go', 'ci/cd', 'agile', 'testing', 'linux', 'microservices',
+    'fastapi', 'django', 'flask', 'redis', 'kafka', 'next.js', 'vue', 'angular', 'gcp'
   ];
   
   const matched: string[] = [];
   const missing: string[] = [];
+  const preferred: string[] = [];
+
+  const CANONICAL_TECH_NAMES: Record<string, string> = {
+    'fastapi': 'FastAPI',
+    'postgresql': 'PostgreSQL',
+    'node.js': 'Node.js',
+    'next.js': 'Next.js',
+    'typescript': 'TypeScript',
+    'javascript': 'JavaScript',
+    'mongodb': 'MongoDB',
+    'graphql': 'GraphQL',
+    'rest apis': 'REST APIs',
+    'rest': 'REST APIs',
+    'ci/cd': 'CI/CD',
+    'aws': 'AWS',
+    'azure': 'Azure',
+    'gcp': 'GCP',
+    'sql': 'SQL',
+    'c++': 'C++',
+    'vue': 'Vue.js',
+    'angular': 'Angular',
+    'react': 'React',
+    'docker': 'Docker',
+    'kubernetes': 'Kubernetes',
+    'python': 'Python',
+    'java': 'Java',
+    'go': 'Go',
+    'git': 'Git',
+    'linux': 'Linux',
+    'redis': 'Redis',
+    'kafka': 'Kafka',
+    'django': 'Django',
+    'flask': 'Flask',
+    'tailwind': 'Tailwind CSS',
+    'microservices': 'Microservices',
+    'agile': 'Agile',
+    'testing': 'Testing / QA'
+  };
 
   techKeywords.forEach(kw => {
     if (lowerJD.includes(kw)) {
       const userHas = (userSkills || []).some((s: string) => s.toLowerCase().includes(kw));
-      if (userHas) matched.push(kw.toUpperCase());
-      else missing.push(kw.toUpperCase());
+      const formatted = CANONICAL_TECH_NAMES[kw] || (kw.length <= 3 ? kw.toUpperCase() : kw.charAt(0).toUpperCase() + kw.slice(1));
+      if (userHas) {
+        if (!matched.includes(formatted)) matched.push(formatted);
+      } else {
+        if (!missing.includes(formatted)) missing.push(formatted);
+      }
     }
   });
 
+  // Extract domain/role heuristics
+  let roleTitle = 'Software Engineer';
+  if (lowerJD.includes('backend') || lowerJD.includes('back-end')) roleTitle = 'Backend Developer';
+  else if (lowerJD.includes('frontend') || lowerJD.includes('front-end')) roleTitle = 'Frontend Engineer';
+  else if (lowerJD.includes('full stack') || lowerJD.includes('fullstack')) roleTitle = 'Full Stack Developer';
+  else if (lowerJD.includes('data engineer') || lowerJD.includes('data analyst')) roleTitle = 'Data Engineer';
+  else if (lowerJD.includes('devops') || lowerJD.includes('cloud')) roleTitle = 'DevOps / Cloud Engineer';
+
+  let domain = 'Software Engineering & Technology';
+  if (lowerJD.includes('fintech') || lowerJD.includes('banking') || lowerJD.includes('payments')) domain = 'Fintech & Financial Systems';
+  else if (lowerJD.includes('healthcare') || lowerJD.includes('medical')) domain = 'Healthcare & Life Sciences';
+  else if (lowerJD.includes('cloud') || lowerJD.includes('infrastructure')) domain = 'Cloud Infrastructure & Distributed Systems';
+
+  let experienceReq = '2+ years of relevant software engineering or project experience';
+  if (lowerJD.includes('senior') || lowerJD.includes('5+') || lowerJD.includes('5 years')) experienceReq = '5+ years of software design and system architecture experience';
+  else if (lowerJD.includes('fresher') || lowerJD.includes('entry') || lowerJD.includes('new grad') || lowerJD.includes('0-2')) experienceReq = 'Bachelor\'s in Computer Science or related field (Fresher / Entry-Level)';
+
+  const allReqSkills = [...matched, ...missing];
+
   return {
-    summary: 'Extracted key requirements and core technical qualifications from the target job posting.',
-    requiredSkills: missing.concat(matched).slice(0, 8),
+    roleTitle,
+    domain,
+    summary: `Structured role analysis for ${roleTitle} in ${domain}.`,
+    requiredSkills: allReqSkills.slice(0, 8),
+    preferredSkills: missing.slice(0, 4),
+    technologies: (matched.concat(missing)).slice(0, 10),
+    responsibilities: [
+      'Design, build, and maintain scalable software services and APIs.',
+      'Collaborate with product and cross-functional teams to ship robust features.',
+      'Write comprehensive automated unit/integration tests and participate in code reviews.'
+    ],
+    experienceRequirements: experienceReq,
+    educationRequirements: 'B.S. / B.Tech / M.S. in Computer Science, Engineering, or equivalent practical experience',
+    keywords: ['API Design', 'System Reliability', 'Scalability', 'Clean Code', 'Test Coverage', 'Continuous Integration'],
     matchedSkills: matched,
     missingSkills: missing,
-    keywords: ['Performance', 'Scalability', 'Collaboration', 'Testing', 'Clean Code', 'API Design'],
-    responsibilities: [
-      'Design, develop, and maintain robust software components and services.',
-      'Participate actively in code reviews, architectural planning, and sprint execution.',
-      'Collaborate with cross-functional engineering and product teams to deliver customer value.'
-    ]
+    keywordGaps: missing.slice(0, 5),
+    sectionsToStrengthen: missing.length > 0 ? ['Technical Skills Inventory', 'Experience Action Verbs', 'Quantified Project Impact'] : ['Professional Summary']
   };
 }
 
@@ -248,14 +318,20 @@ User's Current Skills: ${JSON.stringify(userSkills || [])}
 
 Extract structured insights in JSON format:
 {
-  "summary": "Brief 1-2 sentence overview of the role and expectations.",
+  "roleTitle": "Extracted role title or best match",
+  "domain": "Domain or industry (e.g. Cloud Infrastructure, Fintech, Healthcare)",
+  "summary": "Brief 1-2 sentence overview of the role and core expectations.",
   "requiredSkills": ["skill1", "skill2"],
   "preferredSkills": ["skill1", "skill2"],
   "technologies": ["tech1", "tech2"],
   "responsibilities": ["resp1", "resp2"],
+  "experienceRequirements": "e.g. 3+ years in backend engineering",
+  "educationRequirements": "e.g. BS in Computer Science or equivalent",
   "keywords": ["keyword1", "keyword2"],
   "matchedSkills": ["skills present in both userSkills and JD"],
-  "missingSkills": ["important JD skills not found in userSkills"]
+  "missingSkills": ["important JD skills not found in userSkills"],
+  "keywordGaps": ["important domain keywords missing from user profile"],
+  "sectionsToStrengthen": ["Sections in resume that could be improved for this role"]
 }`;
 
     const response = await geminiClient.models.generateContent({
@@ -269,7 +345,10 @@ Extract structured insights in JSON format:
     const text = response.text || '{}';
     const parsed = JSON.parse(text);
 
-    res.json(parsed);
+    res.json({
+      ...getDeterministicJobAnalysis(jobDescription, userSkills),
+      ...parsed
+    });
   } catch (error) {
     console.warn('Gemini API call failed, using deterministic fallback for job analysis:', error);
     res.json(getDeterministicJobAnalysis(jobDescription, userSkills));
@@ -430,22 +509,180 @@ export async function tailorDocument(req: Request, res: Response): Promise<void>
 
   const docSummary = documentData?.summary || '';
   const skillsList = (documentData?.skills || []).flatMap((s: any) => s.items || []);
+  const experiences = documentData?.experience || [];
+  const projects = documentData?.projects || [];
 
   const jobAnalysis = getDeterministicJobAnalysis(jobDescription, skillsList);
+  const matchedSkillsPreview = jobAnalysis.matchedSkills.slice(0, 4).join(', ') || 'modern engineering practices';
+  const roleName = targetRole || jobAnalysis.roleTitle || 'Software Engineer';
+  const companyName = targetCompany || 'your team';
 
-  const tailoredSummary = `Results-driven professional targeting the ${targetRole || 'open'} role at ${targetCompany || 'your company'}, combining proven proficiency in ${jobAnalysis.matchedSkills.slice(0, 4).join(', ') || 'modern technologies'} with a commitment to engineering excellence.`;
+  // Build deterministic summary suggestion
+  const tailoredSummary = docSummary
+    ? `Results-driven ${roleName} with proven experience in ${matchedSkillsPreview}, targeting the open position at ${companyName}. Dedicated to engineering excellence, robust system architecture, and delivering high-quality solutions.`
+    : `Motivated ${roleName} with a strong foundation in ${matchedSkillsPreview}, eager to contribute to ${companyName}'s engineering goals through disciplined problem solving and collaboration.`;
 
-  res.json({
-    matchScore: Math.min(95, Math.max(50, Math.round((jobAnalysis.matchedSkills.length / Math.max(1, jobAnalysis.requiredSkills.length)) * 100))),
-    matchedKeywords: jobAnalysis.matchedSkills,
-    missingKeywords: jobAnalysis.missingSkills,
-    summarySuggestion: tailoredSummary,
-    recommendedSkillAdditions: jobAnalysis.missingSkills.slice(0, 5),
-    bulletImprovementRecommendations: [
-      'Highlight relevant framework usage in recent project descriptions.',
-      'Incorporate quantified impact metrics for high-priority technical deliverables.'
-    ]
+  // Build deterministic bullet suggestions from user's actual bullets
+  const bulletSuggestions: Array<{
+    id: string;
+    section: 'experience' | 'projects';
+    parentTitle: string;
+    original: string;
+    suggested: string;
+    rationale: string;
+  }> = [];
+
+  experiences.slice(0, 2).forEach((exp: any, expIdx: number) => {
+    (exp.bullets || []).slice(0, 2).forEach((b: string, bIdx: number) => {
+      const cleaned = b.replace(/^(built|worked on|developed|created|made|assisted with|helped with)\s+/i, '');
+      const actionVerb = bIdx === 0 ? 'Architected and engineered' : 'Spearheaded development of';
+      bulletSuggestions.push({
+        id: `exp_${expIdx}_${bIdx}`,
+        section: 'experience',
+        parentTitle: exp.company || 'Experience',
+        original: b,
+        suggested: `${actionVerb} ${cleaned}, ensuring high reliability and aligning with ${roleName} standards.`,
+        rationale: 'Elevated action verb strength and reinforced professional impact based on your existing contribution.'
+      });
+    });
   });
+
+  if (bulletSuggestions.length === 0 && projects.length > 0) {
+    projects.slice(0, 2).forEach((proj: any, pIdx: number) => {
+      (proj.bullets || []).slice(0, 1).forEach((b: string, bIdx: number) => {
+        const cleaned = b.replace(/^(built|created|developed|worked on)\s+/i, '');
+        bulletSuggestions.push({
+          id: `proj_${pIdx}_${bIdx}`,
+          section: 'projects',
+          parentTitle: proj.name || 'Project',
+          original: b,
+          suggested: `Designed and delivered ${cleaned}, incorporating robust architectural patterns and test coverage.`,
+          rationale: 'Clarified project execution scope and technical delivery.'
+        });
+      });
+    });
+  }
+
+  const matchRatio = jobAnalysis.requiredSkills.length > 0
+    ? jobAnalysis.matchedSkills.length / jobAnalysis.requiredSkills.length
+    : 0.6;
+  const matchScore = Math.min(95, Math.max(45, Math.round(matchRatio * 100)));
+
+  if (!geminiClient) {
+    res.json({
+      matchScore,
+      roleTitle: jobAnalysis.roleTitle,
+      domain: jobAnalysis.domain,
+      targetRole: roleName,
+      targetCompany: companyName,
+      matchedKeywords: jobAnalysis.matchedSkills,
+      missingKeywords: jobAnalysis.missingSkills,
+      requiredSkills: jobAnalysis.requiredSkills,
+      preferredSkills: jobAnalysis.preferredSkills,
+      technologies: jobAnalysis.technologies,
+      responsibilities: jobAnalysis.responsibilities,
+      experienceRequirements: jobAnalysis.experienceRequirements,
+      educationRequirements: jobAnalysis.educationRequirements,
+      summaryOriginal: docSummary,
+      summarySuggestion: tailoredSummary,
+      summaryRationale: `Emphasizes your existing experience with ${matchedSkillsPreview} and aligns your profile for ${companyName}.`,
+      bulletSuggestions,
+      recommendedSkillAdditions: jobAnalysis.missingSkills.slice(0, 6),
+      sectionsToStrengthen: jobAnalysis.sectionsToStrengthen
+    });
+    return;
+  }
+
+  try {
+    const userBullets = [
+      ...experiences.flatMap((e: any) => (e.bullets || []).map((b: string) => ({ section: 'experience', parentTitle: e.company, text: b }))),
+      ...projects.flatMap((p: any) => (p.bullets || []).map((b: string) => ({ section: 'projects', parentTitle: p.name, text: b })))
+    ].slice(0, 4);
+
+    const prompt = `${AI_TRUTHFULNESS_PROMPT}
+
+Task: Tailor the user's resume for the target job description.
+TRUTHFULNESS MANDATE:
+- Base suggestions ONLY on the user's existing draft data.
+- NEVER fabricate companies, degrees, certifications, numerical metrics, or new technologies not in the user's bullets.
+- ONLY rephrase for clarity, strong action verbs, and ATS keyword alignment.
+
+Target Role: "${roleName}"
+Target Company: "${companyName}"
+Job Description: """${jobDescription.slice(0, 3000)}"""
+
+User's Existing Summary: "${docSummary}"
+User's Existing Bullets: ${JSON.stringify(userBullets)}
+
+Output JSON strictly:
+{
+  "summarySuggestion": "Polished summary tailored to the role using ONLY user's actual background...",
+  "summaryRationale": "Brief 1-sentence rationale for the change",
+  "bulletSuggestions": [
+    {
+      "id": "b_0",
+      "original": "original bullet text",
+      "suggested": "improved bullet with strong action verb without fabricating metrics",
+      "rationale": "reason for phrasing update"
+    }
+  ]
+}`;
+
+    const response = await geminiClient.models.generateContent({
+      model: GEMINI_MODEL,
+      contents: prompt,
+      config: {
+        responseMimeType: 'application/json'
+      }
+    });
+
+    const parsed = JSON.parse(response.text || '{}');
+
+    res.json({
+      matchScore,
+      roleTitle: jobAnalysis.roleTitle,
+      domain: jobAnalysis.domain,
+      targetRole: roleName,
+      targetCompany: companyName,
+      matchedKeywords: jobAnalysis.matchedSkills,
+      missingKeywords: jobAnalysis.missingSkills,
+      requiredSkills: jobAnalysis.requiredSkills,
+      preferredSkills: jobAnalysis.preferredSkills,
+      technologies: jobAnalysis.technologies,
+      responsibilities: jobAnalysis.responsibilities,
+      experienceRequirements: jobAnalysis.experienceRequirements,
+      educationRequirements: jobAnalysis.educationRequirements,
+      summaryOriginal: docSummary,
+      summarySuggestion: parsed.summarySuggestion || tailoredSummary,
+      summaryRationale: parsed.summaryRationale || `Emphasizes your existing experience with ${matchedSkillsPreview} and aligns your profile for ${companyName}.`,
+      bulletSuggestions: (parsed.bulletSuggestions && parsed.bulletSuggestions.length > 0) ? parsed.bulletSuggestions : bulletSuggestions,
+      recommendedSkillAdditions: jobAnalysis.missingSkills.slice(0, 6),
+      sectionsToStrengthen: jobAnalysis.sectionsToStrengthen
+    });
+  } catch (error) {
+    console.warn('Gemini tailoring call failed, using deterministic fallback:', error);
+    res.json({
+      matchScore,
+      roleTitle: jobAnalysis.roleTitle,
+      domain: jobAnalysis.domain,
+      targetRole: roleName,
+      targetCompany: companyName,
+      matchedKeywords: jobAnalysis.matchedSkills,
+      missingKeywords: jobAnalysis.missingSkills,
+      requiredSkills: jobAnalysis.requiredSkills,
+      preferredSkills: jobAnalysis.preferredSkills,
+      technologies: jobAnalysis.technologies,
+      responsibilities: jobAnalysis.responsibilities,
+      experienceRequirements: jobAnalysis.experienceRequirements,
+      educationRequirements: jobAnalysis.educationRequirements,
+      summaryOriginal: docSummary,
+      summarySuggestion: tailoredSummary,
+      summaryRationale: `Emphasizes your existing experience with ${matchedSkillsPreview} and aligns your profile for ${companyName}.`,
+      bulletSuggestions,
+      recommendedSkillAdditions: jobAnalysis.missingSkills.slice(0, 6),
+      sectionsToStrengthen: jobAnalysis.sectionsToStrengthen
+    });
+  }
 }
 
 // -------------------------------------------------------------
