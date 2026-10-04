@@ -7,7 +7,7 @@ const API_BASE = rawApiUrl ? `${rawApiUrl}/api` : '/api';
 function getAuthHeaders(): Record<string, string> {
   const headers: Record<string, string> = {};
   if (typeof window !== 'undefined') {
-    const token = localStorage.getItem('admin_token');
+    const token = localStorage.getItem('auth_token') || localStorage.getItem('admin_token') || localStorage.getItem('user_token');
     if (token) {
       headers['Authorization'] = `Bearer ${token}`;
     }
@@ -270,8 +270,27 @@ export const apiClient = {
     return res.blob();
   },
 
-  // Admin Authentication & Profile
-  async adminLogin(credentials: { email: string; password: string }) {
+  // User & Admin Authentication
+  async register(data: { name: string; email: string; password: string }) {
+    const res = await request('/auth/register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+      credentials: 'include'
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ error: `Registration failed (HTTP ${res.status})` }));
+      throw new Error(err.error || `Registration failed (HTTP ${res.status})`);
+    }
+    const resData = await res.json();
+    if (resData?.token && typeof window !== 'undefined') {
+      localStorage.setItem('auth_token', resData.token);
+      localStorage.setItem('user_token', resData.token);
+    }
+    return resData;
+  },
+
+  async login(credentials: { email: string; password: string }) {
     const res = await request('/auth/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -287,12 +306,21 @@ export const apiClient = {
     }
     const data = await res.json();
     if (data?.token && typeof window !== 'undefined') {
-      localStorage.setItem('admin_token', data.token);
+      localStorage.setItem('auth_token', data.token);
+      if (data.user?.role === 'ADMIN' || data.user?.role === 'SUPER_ADMIN') {
+        localStorage.setItem('admin_token', data.token);
+      } else {
+        localStorage.setItem('user_token', data.token);
+      }
     }
     return data;
   },
 
-  async getAdminMe() {
+  async adminLogin(credentials: { email: string; password: string }) {
+    return this.login(credentials);
+  },
+
+  async getMe() {
     const res = await fetch(`${API_BASE}/auth/me`, {
       credentials: 'include',
       headers: {
@@ -303,9 +331,15 @@ export const apiClient = {
     return res.json();
   },
 
-  async adminLogout() {
+  async getAdminMe() {
+    return this.getMe();
+  },
+
+  async logout() {
     if (typeof window !== 'undefined') {
+      localStorage.removeItem('auth_token');
       localStorage.removeItem('admin_token');
+      localStorage.removeItem('user_token');
     }
     await fetch(`${API_BASE}/auth/logout`, {
       method: 'POST',
@@ -314,6 +348,168 @@ export const apiClient = {
         ...getAuthHeaders()
       }
     }).catch(() => {});
+  },
+
+  async adminLogout() {
+    return this.logout();
+  },
+
+  // User Profile
+  async getProfile() {
+    const res = await fetch(`${API_BASE}/profile`, {
+      credentials: 'include',
+      headers: {
+        ...getAuthHeaders()
+      }
+    });
+    if (!res.ok) throw new Error('Failed to retrieve user profile');
+    return res.json();
+  },
+
+  async updateProfile(profileData: any) {
+    const res = await fetch(`${API_BASE}/profile`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        ...getAuthHeaders()
+      },
+      body: JSON.stringify(profileData),
+      credentials: 'include'
+    });
+    if (!res.ok) throw new Error('Failed to update user profile');
+    return res.json();
+  },
+
+  // User Cloud Documents
+  async getUserDocuments() {
+    const res = await fetch(`${API_BASE}/documents`, {
+      credentials: 'include',
+      headers: {
+        ...getAuthHeaders()
+      }
+    });
+    if (!res.ok) throw new Error('Failed to fetch user documents');
+    return res.json();
+  },
+
+  async getDocumentById(id: string) {
+    const res = await fetch(`${API_BASE}/documents/${id}`, {
+      credentials: 'include',
+      headers: {
+        ...getAuthHeaders()
+      }
+    });
+    if (!res.ok) throw new Error('Failed to fetch document');
+    return res.json();
+  },
+
+  async createCloudDocument(doc: any) {
+    const res = await fetch(`${API_BASE}/documents`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...getAuthHeaders()
+      },
+      body: JSON.stringify(doc),
+      credentials: 'include'
+    });
+    if (!res.ok) throw new Error('Failed to create cloud document');
+    return res.json();
+  },
+
+  async updateCloudDocument(id: string, doc: any) {
+    const res = await fetch(`${API_BASE}/documents/${id}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        ...getAuthHeaders()
+      },
+      body: JSON.stringify(doc),
+      credentials: 'include'
+    });
+    if (!res.ok) throw new Error('Failed to update cloud document');
+    return res.json();
+  },
+
+  async deleteCloudDocument(id: string) {
+    const res = await fetch(`${API_BASE}/documents/${id}`, {
+      method: 'DELETE',
+      headers: {
+        ...getAuthHeaders()
+      },
+      credentials: 'include'
+    });
+    if (!res.ok) throw new Error('Failed to delete cloud document');
+    return res.json();
+  },
+
+  async syncDocuments(documents: any[]) {
+    const res = await fetch(`${API_BASE}/documents/sync`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...getAuthHeaders()
+      },
+      body: JSON.stringify({ documents }),
+      credentials: 'include'
+    });
+    if (!res.ok) throw new Error('Failed to synchronize documents');
+    return res.json();
+  },
+
+  // Feedback & Support
+  async submitFeedback(payload: { name: string; email: string; category: string; message: string }) {
+    const res = await request('/feedback', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...getAuthHeaders()
+      },
+      body: JSON.stringify(payload),
+      credentials: 'include'
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ error: 'Failed to submit feedback' }));
+      throw new Error(err.error || 'Failed to submit feedback');
+    }
+    return res.json();
+  },
+
+  async getAdminFeedback() {
+    const res = await fetch(`${API_BASE}/admin/feedback`, {
+      credentials: 'include',
+      headers: {
+        ...getAuthHeaders()
+      }
+    });
+    if (!res.ok) throw new Error('Failed to fetch feedback tickets');
+    return res.json();
+  },
+
+  async updateFeedbackStatus(id: string, status: string) {
+    const res = await fetch(`${API_BASE}/admin/feedback/${id}`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        ...getAuthHeaders()
+      },
+      body: JSON.stringify({ status }),
+      credentials: 'include'
+    });
+    if (!res.ok) throw new Error('Failed to update feedback status');
+    return res.json();
+  },
+
+  // Admin Users
+  async getAdminUsers() {
+    const res = await fetch(`${API_BASE}/admin/users`, {
+      credentials: 'include',
+      headers: {
+        ...getAuthHeaders()
+      }
+    });
+    if (!res.ok) throw new Error('Failed to fetch admin users');
+    return res.json();
   },
 
   async updateTemplate(id: string, updates: any) {

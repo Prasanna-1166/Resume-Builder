@@ -5,6 +5,10 @@ import helmet from 'helmet';
 import path from 'path';
 
 import authRoutes from './routes/auth.routes';
+import profileRoutes from './routes/profile.routes';
+import documentRoutes from './routes/documents.routes';
+import feedbackRoutes from './routes/feedback.routes';
+import adminRoutes from './routes/admin.routes';
 import templateRoutes from './routes/templates.routes';
 import aiRoutes from './routes/ai.routes';
 import exportRoutes from './routes/export.routes';
@@ -51,6 +55,10 @@ app.use('/uploads', express.static(uploadDir));
 
 // API Routes
 app.use('/api/auth', authRoutes);
+app.use('/api/profile', profileRoutes);
+app.use('/api/documents', documentRoutes);
+app.use('/api/feedback', feedbackRoutes);
+app.use('/api/admin', adminRoutes);
 app.use('/api/templates', templateRoutes);
 app.use('/api/ai', aiRoutes);
 app.use('/api/export', exportRoutes);

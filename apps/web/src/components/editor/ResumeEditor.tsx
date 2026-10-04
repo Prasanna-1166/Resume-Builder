@@ -30,12 +30,16 @@ interface ResumeEditorProps {
   onOpenAiEnhance?: (type: 'summary' | 'bullet', currentText: string, context?: string) => void;
   onOpenSkillSuggestions?: () => void;
   onOpenAtsAuditor?: () => void;
+  onOpenAuthModal?: (mode?: 'login' | 'register') => void;
+  onOpenProfileModal?: () => void;
 }
 
 export const ResumeEditor: React.FC<ResumeEditorProps> = ({
   onOpenAiEnhance,
   onOpenSkillSuggestions,
-  onOpenAtsAuditor
+  onOpenAtsAuditor,
+  onOpenAuthModal,
+  onOpenProfileModal
 }) => {
   const { activeDocument, editorActiveTab, setEditorActiveTab } = useResume();
   const isCv = activeDocument.documentType === 'CV';
@@ -57,7 +61,7 @@ export const ResumeEditor: React.FC<ResumeEditorProps> = ({
   return (
     <div className="space-y-4 max-w-3xl">
       {/* Top Controls: Draft Manager & Live Quality Assistant */}
-      <DraftManager />
+      <DraftManager onOpenAuthModal={onOpenAuthModal} onOpenProfileModal={onOpenProfileModal} />
       <ResumeQualityPanel onOpenAtsAuditor={onOpenAtsAuditor} />
 
       {/* Editor Main Card */}

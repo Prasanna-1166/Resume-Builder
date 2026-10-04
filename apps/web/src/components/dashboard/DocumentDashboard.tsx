@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useResume } from '../../context/ResumeContext';
+import { useAuth } from '../../context/AuthContext';
 import { DocumentType, DocumentCategory, DOCUMENT_CATEGORIES, CareerDocument } from '@ai-resume/core';
 import { TEMPLATE_CATALOG } from '@ai-resume/templates';
 import {
@@ -23,7 +24,11 @@ import {
   ShieldCheck,
   Building,
   Target,
-  Clock
+  Clock,
+  User,
+  MessageSquare,
+  Cloud,
+  ArrowRight
 } from 'lucide-react';
 import { apiClient } from '../../services/api';
 
@@ -32,13 +37,19 @@ interface DocumentDashboardProps {
   onOpenPreview: () => void;
   onBrowseTemplates: () => void;
   onOpenVersionModal: (docId: string) => void;
+  onOpenProfileModal?: () => void;
+  onOpenAuthModal?: (mode?: 'login' | 'register') => void;
+  onOpenFeedbackModal?: () => void;
 }
 
 export const DocumentDashboard: React.FC<DocumentDashboardProps> = ({
   onOpenEditor,
   onOpenPreview,
   onBrowseTemplates,
-  onOpenVersionModal
+  onOpenVersionModal,
+  onOpenProfileModal,
+  onOpenAuthModal,
+  onOpenFeedbackModal
 }) => {
   const {
     drafts,
@@ -48,13 +59,17 @@ export const DocumentDashboard: React.FC<DocumentDashboardProps> = ({
     createTailoredCopy,
     renameDraft,
     duplicateCurrentDraft,
-    deleteCurrentDraft
+    deleteCurrentDraft,
+    updateActiveDocument
   } = useResume();
+
+  const { user, isAuthenticated } = useAuth();
 
   const [typeFilter, setTypeFilter] = useState<'ALL' | DocumentType>('ALL');
   const [categoryFilter, setCategoryFilter] = useState<string>('ALL');
   const [searchQuery, setSearchQuery] = useState('');
   const [createModalOpen, setCreateModalOpen] = useState(false);
+  const [useProfileForNewDoc, setUseProfileForNewDoc] = useState(true);
   const [tailorModalTarget, setTailorModalTarget] = useState<CareerDocument | null>(null);
   const [renameTarget, setRenameTarget] = useState<{ id: string; currentTitle: string } | null>(null);
   const [newRenameTitle, setNewRenameTitle] = useState('');
@@ -93,7 +108,7 @@ export const DocumentDashboard: React.FC<DocumentDashboardProps> = ({
   const masterDocs = filteredDrafts.filter(d => !d.parentId || d.isMaster);
   const orphanTailoredDocs = filteredDrafts.filter(d => d.parentId && !drafts.some(m => m.id === d.parentId));
 
-  const handleCreate = (e: React.FormEvent) => {
+  const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     const defaultTemplate =
       newType === 'COVER_LETTER'
@@ -101,7 +116,55 @@ export const DocumentDashboard: React.FC<DocumentDashboardProps> = ({
         : newType === 'CV'
         ? 'template_cv_academic'
         : 'template_01';
-    createDocument(newType, newCategory, newTemplateId || defaultTemplate, newTitle);
+    const newDoc = createDocument(newType, newCategory, newTemplateId || defaultTemplate, newTitle);
+
+    if (useProfileForNewDoc && isAuthenticated) {
+      try {
+        const res = await apiClient.getProfile();
+        if (res?.profile) {
+          const p = res.profile;
+          updateActiveDocument(prev => {
+            const updated: any = { ...prev };
+            if (p.personalInfo) {
+              updated.personalInfo = {
+                ...updated.personalInfo,
+                ...(p.personalInfo.fullName ? { fullName: p.personalInfo.fullName } : {}),
+                ...(p.personalInfo.email ? { email: p.personalInfo.email } : {}),
+                ...(p.personalInfo.phone ? { phone: p.personalInfo.phone } : {}),
+                ...(p.personalInfo.location ? { location: p.personalInfo.location } : {}),
+                ...(p.personalInfo.professionalTitle ? { professionalTitle: p.personalInfo.professionalTitle } : {}),
+                ...(p.personalInfo.website ? { website: p.personalInfo.website } : {}),
+                ...(p.personalInfo.linkedin ? { linkedin: p.personalInfo.linkedin } : {}),
+                ...(p.personalInfo.github ? { github: p.personalInfo.github } : {}),
+                ...(p.personalInfo.portfolio ? { portfolio: p.personalInfo.portfolio } : {})
+              };
+            }
+            if (p.summary && updated.documentType !== 'COVER_LETTER') {
+              updated.summary = p.summary;
+            }
+            if (Array.isArray(p.skills) && p.skills.length > 0 && updated.documentType !== 'COVER_LETTER') {
+              updated.skills = p.skills;
+            }
+            if (Array.isArray(p.experience) && p.experience.length > 0 && updated.documentType !== 'COVER_LETTER') {
+              updated.experience = p.experience;
+            }
+            if (Array.isArray(p.education) && p.education.length > 0 && updated.documentType !== 'COVER_LETTER') {
+              updated.education = p.education;
+            }
+            if (Array.isArray(p.projects) && p.projects.length > 0 && updated.documentType !== 'COVER_LETTER') {
+              updated.projects = p.projects;
+            }
+            if (Array.isArray(p.certifications) && p.certifications.length > 0 && updated.documentType !== 'COVER_LETTER') {
+              updated.certifications = p.certifications;
+            }
+            return updated;
+          });
+        }
+      } catch {
+        // Non-blocking
+      }
+    }
+
     setCreateModalOpen(false);
     setNewTitle('');
     onOpenEditor();
@@ -149,9 +212,77 @@ export const DocumentDashboard: React.FC<DocumentDashboardProps> = ({
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+      {/* Account Status / Guest Callout Bar */}
+      {!isAuthenticated ? (
+        <div className="bg-white rounded-xl border border-indigo-100 p-4 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-lg bg-amber-50 text-amber-700 flex items-center justify-center font-bold">
+              <Cloud className="w-4 h-4 text-amber-600" />
+            </div>
+            <div>
+              <span className="font-bold text-slate-900">Guest Mode:</span>{' '}
+              <span className="text-slate-600">
+                Your documents are saved in local browser storage. Create a free account to back up documents and access them anywhere.
+              </span>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              onClick={() => onOpenAuthModal && onOpenAuthModal('register')}
+              className="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg font-bold shadow-xs transition-all flex items-center gap-1"
+            >
+              <span>Create Account</span>
+              <ArrowRight className="w-3 h-3" />
+            </button>
+            <button
+              onClick={() => onOpenAuthModal && onOpenAuthModal('login')}
+              className="px-3 py-1.5 text-slate-700 hover:bg-slate-100 rounded-lg font-semibold transition-colors"
+            >
+              Sign In
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div className="bg-white rounded-xl border border-slate-200 p-3.5 shadow-2xs flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
+          <div className="flex items-center gap-2.5">
+            <div className="w-7 h-7 rounded-full bg-emerald-100 text-emerald-800 flex items-center justify-center font-bold text-xs">
+              ✓
+            </div>
+            <div>
+              <span className="font-bold text-slate-900">{user?.name}</span>{' '}
+              <span className="text-slate-500">({user?.email})</span>{' '}
+              <span className="ml-1.5 inline-block text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.2 rounded-full border border-emerald-200">
+                Cloud Sync Active
+              </span>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            {onOpenProfileModal && (
+              <button
+                onClick={onOpenProfileModal}
+                className="inline-flex items-center gap-1 px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 rounded-lg font-semibold transition-colors"
+              >
+                <User className="w-3.5 h-3.5 text-indigo-600" />
+                <span>My Master Profile</span>
+              </button>
+            )}
+            {onOpenFeedbackModal && (
+              <button
+                onClick={onOpenFeedbackModal}
+                className="inline-flex items-center gap-1 px-3 py-1.5 bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200 rounded-lg font-medium transition-colors"
+              >
+                <MessageSquare className="w-3.5 h-3.5 text-slate-500" />
+                <span>Feedback & Support</span>
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Header Banner */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 rounded-2xl p-6 sm:p-8 text-white shadow-xl mb-8 border border-slate-800">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 rounded-2xl p-6 sm:p-8 text-white shadow-xl border border-slate-800">
         <div>
           <div className="inline-flex items-center gap-2 bg-indigo-500/20 border border-indigo-500/30 rounded-full px-3 py-1 text-xs font-semibold text-indigo-300 mb-3">
             <Sparkles className="w-3.5 h-3.5" />
@@ -790,6 +921,30 @@ export const DocumentDashboard: React.FC<DocumentDashboardProps> = ({
                   className="w-full px-3 py-2 text-xs border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 />
               </div>
+
+              {/* 5. Master Profile Data Reuse (if logged in) */}
+              {isAuthenticated && (
+                <div className="p-3 bg-indigo-50/60 border border-indigo-100 rounded-xl flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <User className="w-4 h-4 text-indigo-600" />
+                    <div>
+                      <span className="text-xs font-bold text-slate-800">Auto-fill with Master Profile</span>
+                      <p className="text-[11px] text-slate-500">
+                        Populate contact info, summary, experience, education, and skills from your profile.
+                      </p>
+                    </div>
+                  </div>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={useProfileForNewDoc}
+                      onChange={e => setUseProfileForNewDoc(e.target.checked)}
+                      className="sr-only peer"
+                    />
+                    <div className="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-indigo-600"></div>
+                  </label>
+                </div>
+              )}
 
               {/* Modal Buttons */}
               <div className="flex items-center justify-end gap-2 pt-4 border-t border-slate-100">

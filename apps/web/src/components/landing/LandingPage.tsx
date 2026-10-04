@@ -204,16 +204,22 @@ export const LandingPage: React.FC<LandingPageProps> = ({
       <footer className="mt-auto bg-gray-900 text-gray-400 py-8 px-4 text-xs">
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-4">
           <div>
-            <span className="font-bold text-gray-200">AI Resume Builder</span> — Free open productivity tool for students and job seekers worldwide.
+            <span className="font-bold text-gray-200">CareerDoc AI</span> — Free open productivity tool for students and job seekers worldwide.
           </div>
           <div className="flex items-center gap-6">
+            <a
+              href="mailto:support.dvlpr@gmail.com"
+              className="text-gray-400 hover:text-indigo-400 transition-colors"
+            >
+              Contact Support (support.dvlpr@gmail.com)
+            </a>
             <a
               href="/admin"
               className="text-gray-400 hover:text-white transition-colors"
             >
               Admin Portal
             </a>
-            <span className="text-gray-500">v1.0.0</span>
+            <span className="text-gray-500">v1.1.0</span>
           </div>
         </div>
       </footer>

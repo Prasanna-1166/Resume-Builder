@@ -14,6 +14,9 @@ import { JobAnalyzerModal } from './components/ai/JobAnalyzerModal';
 import { AtsAuditorModal } from './components/ai/AtsAuditorModal';
 import { TailorJobModal } from './components/ai/TailorJobModal';
 import { DocumentVersioningModal } from './components/editor/DocumentVersioningModal';
+import { AuthModal } from './components/auth/AuthModal';
+import { FeedbackModal } from './components/feedback/FeedbackModal';
+import { MasterProfileModal } from './components/profile/MasterProfileModal';
 import { AdminLogin } from './components/admin/AdminLogin';
 import { AdminDashboard } from './components/admin/AdminDashboard';
 import { track } from './services/analytics';
@@ -72,7 +75,7 @@ function getPathFromTab(tab: AppTabType): string {
 const AppContent: React.FC = () => {
   const [currentTab, setCurrentTabState] = useState<AppTabType>(() => getTabFromPath());
   const { activeDocument, isCoverLetter, updateResumeData } = useResume();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, isAdmin } = useAuth();
 
   const navigateToTab = (tab: AppTabType, replaceState = false) => {
     setCurrentTabState(tab);
@@ -98,7 +101,7 @@ const AppContent: React.FC = () => {
     };
   }, []);
 
-  // AI & Modal State
+  // Modal States
   const [aiModal, setAiModal] = useState<{
     isOpen: boolean;
     type: 'summary' | 'bullet';
@@ -116,6 +119,14 @@ const AppContent: React.FC = () => {
   const [atsAuditorOpen, setAtsAuditorOpen] = useState(false);
   const [tailorModalOpen, setTailorModalOpen] = useState(false);
   const [versionModalDocId, setVersionModalDocId] = useState<string | null>(null);
+
+  // New Auth, Feedback, Profile Modals
+  const [authModalState, setAuthModalState] = useState<{ isOpen: boolean; mode: 'login' | 'register' }>({
+    isOpen: false,
+    mode: 'login'
+  });
+  const [feedbackModalOpen, setFeedbackModalOpen] = useState(false);
+  const [profileModalOpen, setProfileModalOpen] = useState(false);
 
   const handleOpenAiEnhance = (type: 'summary' | 'bullet', currentText: string, context?: string) => {
     setAiModal({
@@ -140,6 +151,15 @@ const AppContent: React.FC = () => {
         openJobAnalyzer={() => setJobAnalyzerOpen(true)}
         openAtsAuditor={() => setAtsAuditorOpen(true)}
         openTailorModal={() => setTailorModalOpen(true)}
+        openAuthModal={(mode = 'login') => setAuthModalState({ isOpen: true, mode })}
+        openFeedbackModal={() => setFeedbackModalOpen(true)}
+        openProfileModal={() => {
+          if (!isAuthenticated) {
+            setAuthModalState({ isOpen: true, mode: 'login' });
+          } else {
+            setProfileModalOpen(true);
+          }
+        }}
       />
 
       {/* Main View Router */}
@@ -161,6 +181,15 @@ const AppContent: React.FC = () => {
             onOpenPreview={() => navigateToTab('editor')}
             onBrowseTemplates={() => navigateToTab('gallery')}
             onOpenVersionModal={(docId) => setVersionModalDocId(docId)}
+            onOpenProfileModal={() => {
+              if (!isAuthenticated) {
+                setAuthModalState({ isOpen: true, mode: 'login' });
+              } else {
+                setProfileModalOpen(true);
+              }
+            }}
+            onOpenAuthModal={(mode = 'register') => setAuthModalState({ isOpen: true, mode })}
+            onOpenFeedbackModal={() => setFeedbackModalOpen(true)}
           />
         )}
 
@@ -182,6 +211,14 @@ const AppContent: React.FC = () => {
                     onOpenAiEnhance={handleOpenAiEnhance}
                     onOpenSkillSuggestions={() => setSkillModalOpen(true)}
                     onOpenAtsAuditor={() => setAtsAuditorOpen(true)}
+                    onOpenAuthModal={(mode = 'login') => setAuthModalState({ isOpen: true, mode })}
+                    onOpenProfileModal={() => {
+                      if (!isAuthenticated) {
+                        setAuthModalState({ isOpen: true, mode: 'login' });
+                      } else {
+                        setProfileModalOpen(true);
+                      }
+                    }}
                   />
                 )}
               </div>
@@ -196,7 +233,7 @@ const AppContent: React.FC = () => {
 
         {currentTab === 'admin' && (
           <div className="py-6">
-            {isAuthenticated ? <AdminDashboard /> : <AdminLogin />}
+            {isAuthenticated && isAdmin ? <AdminDashboard /> : <AdminLogin />}
           </div>
         )}
       </main>
@@ -237,6 +274,25 @@ const AppContent: React.FC = () => {
         isOpen={Boolean(versionModalDocId)}
         onClose={() => setVersionModalDocId(null)}
         targetDocId={versionModalDocId || undefined}
+      />
+
+      {/* User Account Auth Modal */}
+      <AuthModal
+        isOpen={authModalState.isOpen}
+        initialMode={authModalState.mode}
+        onClose={() => setAuthModalState(prev => ({ ...prev, isOpen: false }))}
+      />
+
+      {/* Contact & Support Feedback Modal */}
+      <FeedbackModal
+        isOpen={feedbackModalOpen}
+        onClose={() => setFeedbackModalOpen(false)}
+      />
+
+      {/* Master Profile Management Modal */}
+      <MasterProfileModal
+        isOpen={profileModalOpen}
+        onClose={() => setProfileModalOpen(false)}
       />
     </div>
   );

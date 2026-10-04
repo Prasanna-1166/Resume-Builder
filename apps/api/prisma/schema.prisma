@@ -17,6 +17,86 @@ model AdminUser {
   updatedAt DateTime @updatedAt
 }
 
+model User {
+  id           String       @id @default(uuid())
+  email        String       @unique
+  passwordHash String
+  name         String
+  role         String       @default("USER")
+  lastLoginAt  DateTime?
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+  profile      UserProfile?
+  documents    Document[]
+  feedbacks    Feedback[]
+
+  @@index([email])
+}
+
+model UserProfile {
+  id             String   @id @default(uuid())
+  userId         String   @unique
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  personalInfo   Json?
+  summary        String?
+  skills         Json?
+  experience     Json?
+  education      Json?
+  projects       Json?
+  certifications Json?
+  achievements   Json?
+  publications   Json?
+  research       Json?
+  conferences    Json?
+  references     Json?
+  activities     Json?
+  languages      Json?
+  customSections Json?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model Document {
+  id            String   @id @default(uuid())
+  userId        String?
+  user          User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title         String
+  documentType  String   @default("RESUME")
+  category      String   @default("STUDENT")
+  templateId    String   @default("template_01")
+  targetRole    String?
+  targetCompany String?
+  parentId      String?
+  parentTitle   String?
+  isMaster      Boolean  @default(true)
+  versionLabel  String?
+  data          Json
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([userId])
+  @@index([documentType])
+  @@index([updatedAt])
+}
+
+model Feedback {
+  id        String   @id @default(uuid())
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  name      String
+  email     String
+  category  String
+  message   String
+  status    String   @default("NEW")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+
 model Template {
   id              String   @id // e.g. "template_01"
   name            String
