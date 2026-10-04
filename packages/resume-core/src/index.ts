@@ -6,3 +6,4 @@ export * from './completeness.js';
 export * from './ats.js';
 export * from './docx.js';
 export * from './fixtures.js';
+export * from './skillsData.js';
