@@ -28,7 +28,7 @@ const FORBIDDEN_METADATA_KEYS = [
 /**
  * Sanitizes arbitrary metadata to guarantee zero PII or large textual inputs are persisted.
  */
-function sanitizeMetadata(raw: any): string | null {
+export function sanitizeMetadata(raw: any): string | null {
   if (!raw || typeof raw !== 'object') return null;
   const safeObj: Record<string, any> = {};
 

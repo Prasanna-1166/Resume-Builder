@@ -4,7 +4,12 @@ import { ProjectItem } from '@ai-resume/core';
 import { Plus, Trash2, FolderGit2, ChevronDown, ChevronUp, Sparkles } from 'lucide-react';
 
 interface ProjectsEditorProps {
-  onOpenAiEnhance?: (type: 'bullet', currentText: string, context?: string) => void;
+  onOpenAiEnhance?: (
+    type: 'bullet',
+    currentText: string,
+    context?: string,
+    onApply?: (newText: string) => void
+  ) => void;
 }
 
 export const ProjectsEditor: React.FC<ProjectsEditorProps> = ({ onOpenAiEnhance }) => {
@@ -214,9 +219,17 @@ export const ProjectsEditor: React.FC<ProjectsEditorProps> = ({ onOpenAiEnhance 
                       {onOpenAiEnhance && (
                         <button
                           type="button"
-                          onClick={() => onOpenAiEnhance('bullet', b, `Project ${proj.name}`)}
-                          className="p-1 text-purple-600 hover:bg-purple-50 rounded"
-                          title="AI Improve Bullet"
+                          onClick={() =>
+                            onOpenAiEnhance(
+                              'bullet',
+                              b,
+                              `Project: ${proj.name || 'Technical Project'}`,
+                              (improved) => handleBulletChange(idx, bi, improved)
+                            )
+                          }
+                          className="p-1 text-purple-600 hover:bg-purple-50 rounded transition-colors"
+                          title="Improve with AI"
+                          aria-label="Improve project highlight with AI"
                         >
                           <Sparkles className="w-3.5 h-3.5" />
                         </button>

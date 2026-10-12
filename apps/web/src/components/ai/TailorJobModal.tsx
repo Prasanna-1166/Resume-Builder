@@ -23,9 +23,10 @@ import {
 interface TailorJobModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onOpenPrivacyPolicy?: () => void;
 }
 
-export const TailorJobModal: React.FC<TailorJobModalProps> = ({ isOpen, onClose }) => {
+export const TailorJobModal: React.FC<TailorJobModalProps> = ({ isOpen, onClose, onOpenPrivacyPolicy }) => {
   const {
     activeDocument,
     updateResumeData,
@@ -41,9 +42,11 @@ export const TailorJobModal: React.FC<TailorJobModalProps> = ({ isOpen, onClose 
   const [isTailoring, setIsTailoring] = useState(false);
   const [tailorResult, setTailorResult] = useState<any | null>(null);
 
-  // Granular approvals
+  // Granular approvals & manual edit states
   const [approveSummary, setApproveSummary] = useState(true);
+  const [editableSummary, setEditableSummary] = useState('');
   const [approvedBullets, setApprovedBullets] = useState<Record<string, boolean>>({});
+  const [editableBullets, setEditableBullets] = useState<Record<string, string>>({});
   const [selectedMissingSkills, setSelectedMissingSkills] = useState<Record<string, boolean>>({});
   const [appliedMessage, setAppliedMessage] = useState<string | null>(null);
 
@@ -64,15 +67,19 @@ export const TailorJobModal: React.FC<TailorJobModalProps> = ({ isOpen, onClose 
         targetCompany
       });
       setTailorResult(res);
+      setEditableSummary(res.summarySuggestion || '');
       if (res.roleTitle && !jobTitle) setJobTitle(res.roleTitle);
       if (res.targetCompany && !targetCompany) setTargetCompany(res.targetCompany);
 
       // Initialize bullet approvals to true by default (user can toggle off)
       const initialBulletApprovals: Record<string, boolean> = {};
+      const initialBulletsMap: Record<string, string> = {};
       (res.bulletSuggestions || []).forEach((b: any) => {
         initialBulletApprovals[b.id] = true;
+        initialBulletsMap[b.id] = b.suggested;
       });
       setApprovedBullets(initialBulletApprovals);
+      setEditableBullets(initialBulletsMap);
 
       // Initialize missing skills checkboxes to false (user must explicitly opt-in)
       const initialSkillsSelection: Record<string, boolean> = {};
@@ -83,7 +90,7 @@ export const TailorJobModal: React.FC<TailorJobModalProps> = ({ isOpen, onClose 
 
       setActiveStep(2);
     } catch (err) {
-      console.error('Tailoring error:', err);
+      console.warn('Tailoring error:', err);
       alert('Failed to analyze and tailor document. Please check your network or try again.');
     } finally {
       setIsTailoring(false);
@@ -96,6 +103,10 @@ export const TailorJobModal: React.FC<TailorJobModalProps> = ({ isOpen, onClose 
     const skillsToAdd = Object.entries(selectedMissingSkills)
       .filter(([_, selected]) => selected)
       .map(([skill]) => skill);
+
+    const finalSummary = approveSummary
+      ? (editableSummary.trim() || tailorResult.summarySuggestion)
+      : undefined;
 
     if (asCopy) {
       // 1. Create a dedicated tailored copy (Master resume remains 100% untouched)
@@ -121,9 +132,10 @@ export const TailorJobModal: React.FC<TailorJobModalProps> = ({ isOpen, onClose 
           let updatedExperience = [...prev.experience];
           (tailorResult.bulletSuggestions || []).forEach((sug: any) => {
             if (approvedBullets[sug.id]) {
+              const textToUse = editableBullets[sug.id]?.trim() || sug.suggested;
               updatedExperience = updatedExperience.map(exp => ({
                 ...exp,
-                bullets: exp.bullets.map(b => (b === sug.original ? sug.suggested : b))
+                bullets: exp.bullets.map(b => (b === sug.original ? textToUse : b))
               }));
             }
           });
@@ -133,7 +145,7 @@ export const TailorJobModal: React.FC<TailorJobModalProps> = ({ isOpen, onClose 
             title: tailoredTitle,
             targetRole: jobTitle || prev.targetRole,
             targetCompany: targetCompany || prev.targetCompany,
-            summary: approveSummary && tailorResult.summarySuggestion ? tailorResult.summarySuggestion : prev.summary,
+            summary: finalSummary !== undefined ? finalSummary : prev.summary,
             experience: updatedExperience,
             skills: updatedSkills
           };
@@ -167,9 +179,10 @@ export const TailorJobModal: React.FC<TailorJobModalProps> = ({ isOpen, onClose 
           let updatedExperience = [...prev.experience];
           (tailorResult.bulletSuggestions || []).forEach((sug: any) => {
             if (approvedBullets[sug.id]) {
+              const textToUse = editableBullets[sug.id]?.trim() || sug.suggested;
               updatedExperience = updatedExperience.map(exp => ({
                 ...exp,
-                bullets: exp.bullets.map(b => (b === sug.original ? sug.suggested : b))
+                bullets: exp.bullets.map(b => (b === sug.original ? textToUse : b))
               }));
             }
           });
@@ -178,7 +191,7 @@ export const TailorJobModal: React.FC<TailorJobModalProps> = ({ isOpen, onClose 
             ...prev,
             targetRole: jobTitle || prev.targetRole,
             targetCompany: targetCompany || prev.targetCompany,
-            summary: approveSummary && tailorResult.summarySuggestion ? tailorResult.summarySuggestion : prev.summary,
+            summary: finalSummary !== undefined ? finalSummary : prev.summary,
             experience: updatedExperience,
             skills: updatedSkills
           };
@@ -303,6 +316,23 @@ export const TailorJobModal: React.FC<TailorJobModalProps> = ({ isOpen, onClose 
                   <span>Base Resume: <strong>{activeDocument.title}</strong></span>
                 </span>
                 <span className="text-[11px] text-slate-400">Strictly non-fabricating AI</span>
+              </div>
+
+              {/* Contextual AI Privacy Notice */}
+              <div className="p-3 bg-purple-50/70 border border-purple-200 rounded-xl text-xs text-purple-950 leading-relaxed">
+                <strong>AI-assisted feature:</strong> When you run job tailoring, the target job description and your draft summary &amp; bullets are sent to our AI provider (Google Gemini) to identify keyword matches and phrasing optimizations. Contact details are not sent. Review our{' '}
+                {onOpenPrivacyPolicy ? (
+                  <button
+                    type="button"
+                    onClick={onOpenPrivacyPolicy}
+                    className="font-bold underline hover:text-purple-700 cursor-pointer"
+                  >
+                    Privacy Policy
+                  </button>
+                ) : (
+                  <span className="font-bold">Privacy Policy</span>
+                )}{' '}
+                for details. Always review suggestions before using them.
               </div>
 
               <button
@@ -468,10 +498,22 @@ export const TailorJobModal: React.FC<TailorJobModalProps> = ({ isOpen, onClose 
                       </p>
                     </div>
                     <div className={`p-3 rounded-lg border transition-all ${approveSummary ? 'bg-indigo-50/40 border-indigo-300' : 'bg-slate-50 border-slate-200 opacity-60'}`}>
-                      <span className="text-[10px] font-bold text-indigo-600 uppercase block mb-1">Suggested Tailored Summary:</span>
-                      <p className="text-slate-800 leading-relaxed font-medium">
-                        "{tailorResult.summarySuggestion}"
-                      </p>
+                      <span className="text-[10px] font-bold text-indigo-600 uppercase block mb-1">
+                        Suggested Version {approveSummary ? '(Editable)' : ''}:
+                      </span>
+                      {approveSummary ? (
+                        <textarea
+                          rows={3}
+                          value={editableSummary}
+                          onChange={e => setEditableSummary(e.target.value)}
+                          className="w-full p-2 text-xs bg-white border border-indigo-200 rounded-lg focus:ring-2 focus:ring-indigo-500 leading-relaxed font-medium text-slate-800"
+                          placeholder="Edit suggested summary before applying..."
+                        />
+                      ) : (
+                        <p className="text-slate-800 leading-relaxed font-medium">
+                          &quot;{editableSummary || tailorResult.summarySuggestion}&quot;
+                        </p>
+                      )}
                     </div>
                   </div>
                   {tailorResult.summaryRationale && (
@@ -532,8 +574,22 @@ export const TailorJobModal: React.FC<TailorJobModalProps> = ({ isOpen, onClose 
                               <p className="text-slate-600">{sug.original}</p>
                             </div>
                             <div className={`p-2.5 rounded-lg border transition-all ${isApproved ? 'bg-indigo-50/40 border-indigo-200 text-slate-800 font-medium' : 'bg-white border-slate-200 opacity-60'}`}>
-                              <span className="text-[10px] text-indigo-600 font-semibold block mb-0.5">Suggested:</span>
-                              <p>{sug.suggested}</p>
+                              <span className="text-[10px] text-indigo-600 font-semibold block mb-0.5">
+                                Suggested {isApproved ? '(Editable)' : ''}:
+                              </span>
+                              {isApproved ? (
+                                <textarea
+                                  rows={2}
+                                  value={editableBullets[sug.id] !== undefined ? editableBullets[sug.id] : sug.suggested}
+                                  onChange={e => {
+                                    const val = e.target.value;
+                                    setEditableBullets(prev => ({ ...prev, [sug.id]: val }));
+                                  }}
+                                  className="w-full p-1.5 text-xs bg-white border border-indigo-200 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                                />
+                              ) : (
+                                <p>{editableBullets[sug.id] || sug.suggested}</p>
+                              )}
                             </div>
                           </div>
                           {sug.rationale && (

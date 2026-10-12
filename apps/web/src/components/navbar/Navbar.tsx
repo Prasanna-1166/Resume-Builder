@@ -57,19 +57,19 @@ export const Navbar: React.FC<NavbarProps> = ({
 
   return (
     <nav className="bg-white border-b border-gray-200 sticky top-0 z-30 shadow-xs no-print">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between h-16 items-center">
+      <div className="max-w-7xl mx-auto px-2.5 sm:px-6 lg:px-8">
+        <div className="flex justify-between h-16 items-center gap-1 sm:gap-4">
           {/* Logo */}
           <div
-            className="flex items-center gap-2.5 cursor-pointer select-none"
+            className="flex items-center gap-1.5 sm:gap-2.5 cursor-pointer select-none shrink-0"
             onClick={() => setCurrentTab('landing')}
           >
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-600 to-blue-600 flex items-center justify-center text-white shadow-md shadow-indigo-600/20">
-              <FileText className="w-5 h-5" />
+            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-gradient-to-tr from-indigo-600 to-blue-600 flex items-center justify-center text-white shadow-md shadow-indigo-600/20 shrink-0">
+              <FileText className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
             <div>
-              <span className="font-extrabold text-gray-900 text-lg tracking-tight">CareerDoc</span>
-              <span className="font-semibold text-indigo-600 text-lg">AI</span>
+              <span className="font-extrabold text-gray-900 text-sm sm:text-lg tracking-tight">CareerDoc</span>
+              <span className="font-semibold text-indigo-600 text-sm sm:text-lg">AI</span>
             </div>
           </div>
 
@@ -77,40 +77,44 @@ export const Navbar: React.FC<NavbarProps> = ({
           <div className="flex items-center gap-1 sm:gap-2">
             <button
               onClick={() => setCurrentTab('dashboard')}
-              className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs sm:text-sm font-semibold transition-colors ${
+              className={`flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-semibold transition-colors ${
                 currentTab === 'dashboard'
                   ? 'bg-indigo-50 text-indigo-700 font-bold'
                   : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
               }`}
+              title="Dashboard"
             >
-              <FolderGit2 className="w-4 h-4" />
-              <span>Dashboard</span>
+              <FolderGit2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
+              <span className="hidden xs:inline sm:inline">Dashboard</span>
             </button>
 
             <button
               onClick={() => setCurrentTab('gallery')}
-              className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs sm:text-sm font-medium transition-colors ${
+              className={`flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-medium transition-colors ${
                 currentTab === 'gallery'
                   ? 'bg-indigo-50 text-indigo-700 font-bold'
                   : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
               }`}
+              title="Templates"
             >
-              <LayoutGrid className="w-4 h-4" />
-              <span>Templates</span>
+              <LayoutGrid className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
+              <span className="hidden xs:inline sm:inline">Templates</span>
             </button>
 
             <button
               onClick={() => setCurrentTab('editor')}
-              className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs sm:text-sm font-medium transition-colors ${
+              className={`flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-medium transition-colors ${
                 currentTab === 'editor'
                   ? 'bg-indigo-50 text-indigo-700 font-bold'
                   : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
               }`}
+              title="Editor"
             >
-              <FileText className="w-4 h-4" />
-              <span>
+              <FileText className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
+              <span className="hidden sm:inline">
                 {docType === 'COVER_LETTER' ? 'Cover Letter Editor' : docType === 'CV' ? 'CV Editor' : 'Resume Editor'}
               </span>
+              <span className="sm:hidden text-xs">Editor</span>
             </button>
 
             {/* In-Editor AI & ATS Shortcuts */}
@@ -252,10 +256,10 @@ export const Navbar: React.FC<NavbarProps> = ({
               </button>
             )}
 
-            {/* Primary CTA */}
+            {/* Primary CTA (shown on screens >= sm, since Dashboard link is already in nav) */}
             <button
               onClick={() => setCurrentTab('dashboard')}
-              className="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs sm:text-sm font-semibold shadow-md shadow-indigo-600/20 transition-all hover:scale-[1.02] flex items-center gap-1.5"
+              className="hidden sm:flex px-3.5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs sm:text-sm font-semibold shadow-md shadow-indigo-600/20 transition-all hover:scale-[1.02] items-center gap-1.5"
             >
               <Layers className="w-4 h-4" />
               <span>My Docs</span>

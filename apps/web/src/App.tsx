@@ -19,6 +19,9 @@ import { FeedbackModal } from './components/feedback/FeedbackModal';
 import { MasterProfileModal } from './components/profile/MasterProfileModal';
 import { AdminLogin } from './components/admin/AdminLogin';
 import { AdminDashboard } from './components/admin/AdminDashboard';
+import { AppFooter } from './components/common/AppFooter';
+import { PrivacyPolicyModal } from './components/common/PrivacyPolicyModal';
+import { TermsModal } from './components/common/TermsModal';
 import { track } from './services/analytics';
 
 function getTabFromPath(): AppTabType {
@@ -89,10 +92,23 @@ const AppContent: React.FC = () => {
     }
   };
 
+  // Modal States
+  const [privacyModalOpen, setPrivacyModalOpen] = useState(false);
+  const [termsModalOpen, setTermsModalOpen] = useState(false);
+
   useEffect(() => {
     const handleUrlChange = () => {
       setCurrentTabState(getTabFromPath());
+      const path = window.location.pathname.toLowerCase();
+      const hash = window.location.hash.toLowerCase();
+      const search = window.location.search.toLowerCase();
+      if (path === '/privacy' || hash === '#privacy' || search.includes('privacy')) {
+        setPrivacyModalOpen(true);
+      } else if (path === '/terms' || hash === '#terms' || search.includes('terms')) {
+        setTermsModalOpen(true);
+      }
     };
+    handleUrlChange();
     window.addEventListener('popstate', handleUrlChange);
     window.addEventListener('hashchange', handleUrlChange);
     return () => {
@@ -128,14 +144,21 @@ const AppContent: React.FC = () => {
   const [feedbackModalOpen, setFeedbackModalOpen] = useState(false);
   const [profileModalOpen, setProfileModalOpen] = useState(false);
 
-  const handleOpenAiEnhance = (type: 'summary' | 'bullet', currentText: string, context?: string) => {
+  const handleOpenAiEnhance = (
+    type: 'summary' | 'bullet',
+    currentText: string,
+    context?: string,
+    onApply?: (newText: string) => void
+  ) => {
     setAiModal({
       isOpen: true,
       type,
       currentText,
       context,
       onApply: (newText: string) => {
-        if (type === 'summary') {
+        if (onApply) {
+          onApply(newText);
+        } else if (type === 'summary') {
           updateResumeData(prev => ({ ...prev, summary: newText }));
         }
       }
@@ -238,6 +261,14 @@ const AppContent: React.FC = () => {
         )}
       </main>
 
+      {/* Footer */}
+      <AppFooter
+        onOpenPrivacyPolicy={() => setPrivacyModalOpen(true)}
+        onOpenTerms={() => setTermsModalOpen(true)}
+        onOpenFeedback={() => setFeedbackModalOpen(true)}
+        onNavigateAdmin={() => navigateToTab('admin')}
+      />
+
       {/* Modals */}
       <AiEnhanceModal
         isOpen={aiModal.isOpen}
@@ -248,16 +279,19 @@ const AppContent: React.FC = () => {
         onApply={(newText) => {
           if (aiModal.onApply) aiModal.onApply(newText);
         }}
+        onOpenPrivacyPolicy={() => setPrivacyModalOpen(true)}
       />
 
       <SkillSuggestionsModal
         isOpen={skillModalOpen}
         onClose={() => setSkillModalOpen(false)}
+        onOpenPrivacyPolicy={() => setPrivacyModalOpen(true)}
       />
 
       <JobAnalyzerModal
         isOpen={jobAnalyzerOpen}
         onClose={() => setJobAnalyzerOpen(false)}
+        onOpenPrivacyPolicy={() => setPrivacyModalOpen(true)}
       />
 
       <AtsAuditorModal
@@ -268,6 +302,7 @@ const AppContent: React.FC = () => {
       <TailorJobModal
         isOpen={tailorModalOpen}
         onClose={() => setTailorModalOpen(false)}
+        onOpenPrivacyPolicy={() => setPrivacyModalOpen(true)}
       />
 
       <DocumentVersioningModal
@@ -293,6 +328,17 @@ const AppContent: React.FC = () => {
       <MasterProfileModal
         isOpen={profileModalOpen}
         onClose={() => setProfileModalOpen(false)}
+      />
+
+      {/* Privacy Policy and Terms Modals */}
+      <PrivacyPolicyModal
+        isOpen={privacyModalOpen}
+        onClose={() => setPrivacyModalOpen(false)}
+      />
+
+      <TermsModal
+        isOpen={termsModalOpen}
+        onClose={() => setTermsModalOpen(false)}
       />
     </div>
   );

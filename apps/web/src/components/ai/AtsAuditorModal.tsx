@@ -33,9 +33,18 @@ export const AtsAuditorModal: React.FC<AtsAuditorModalProps> = ({ isOpen, onClos
 
         {/* Content */}
         <div className="p-6 overflow-y-auto space-y-5">
-          {/* Disclaimer Banner */}
-          <div className="p-3 bg-gray-50 border border-gray-200 rounded-lg text-[11px] text-gray-600 leading-relaxed">
-            <strong>Notice:</strong> No tool can guarantee 100% ATS pass rates because individual hiring software (Workday, Greenhouse, Taleo) use custom ranking rules. This audit tests standard parsing heuristics, keyword density, and formatting integrity.
+          {/* Disclaimer & Local Execution Banner */}
+          <div className="p-3 bg-emerald-50/60 border border-emerald-200 rounded-lg text-[11px] text-emerald-950 leading-relaxed space-y-1">
+            <div className="font-bold flex items-center gap-1.5 text-emerald-900">
+              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+              <span>100% Local & Deterministic Heuristic Analysis</span>
+            </div>
+            <p className="text-emerald-800 text-[11px]">
+              This audit evaluates structural hierarchy, keyword density, and bullet action verbs directly within your browser. <strong>No document text is transmitted to AI models or external servers for this check.</strong>
+            </p>
+            <p className="text-[10.5px] text-gray-500 pt-0.5">
+              Notice: No software can guarantee 100% ATS acceptance because commercial systems (e.g. Workday, Greenhouse) apply employer-specific scoring formulas.
+            </p>
           </div>
 
           {/* Score & Key Metrics */}

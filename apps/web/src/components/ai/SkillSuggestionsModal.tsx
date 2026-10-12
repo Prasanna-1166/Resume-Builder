@@ -7,11 +7,13 @@ import { track } from '../../services/analytics';
 interface SkillSuggestionsModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onOpenPrivacyPolicy?: () => void;
 }
 
 export const SkillSuggestionsModal: React.FC<SkillSuggestionsModalProps> = ({
   isOpen,
-  onClose
+  onClose,
+  onOpenPrivacyPolicy
 }) => {
   const { resumeData, updateResumeData } = useResume();
   const [loading, setLoading] = useState(false);
@@ -33,7 +35,7 @@ export const SkillSuggestionsModal: React.FC<SkillSuggestionsModalProps> = ({
       setSuggestions(filtered);
       track('AI_SKILLS', { status: 'SUCCESS' });
     } catch (err) {
-      console.error(err);
+      console.warn('AI skill suggestion error:', err);
       track('AI_SKILLS', { status: 'ERROR' });
     } finally {
       setLoading(false);
@@ -88,28 +90,44 @@ export const SkillSuggestionsModal: React.FC<SkillSuggestionsModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-2xs flex items-center justify-center p-4">
-      <div className="bg-white rounded-xl shadow-xl max-w-lg w-full overflow-hidden animate-in fade-in zoom-in duration-150 flex flex-col max-h-[90vh]">
+    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 overflow-y-auto" role="dialog" aria-modal="true" aria-labelledby="skill-sug-title">
+      <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden animate-in fade-in zoom-in-95 duration-150 flex flex-col max-h-[90vh] border border-slate-200">
         {/* Header */}
-        <div className="px-5 py-3.5 border-b border-gray-200 bg-purple-50/50 flex justify-between items-center shrink-0">
+        <div className="px-5 py-3.5 border-b border-gray-200 bg-purple-50/70 flex justify-between items-center shrink-0">
           <div className="flex items-center gap-2">
-            <div className="p-1 rounded bg-purple-100 text-purple-700">
+            <div className="p-1.5 rounded-lg bg-purple-600 text-white shadow-xs">
               <Sparkles className="w-4 h-4" />
             </div>
-            <h3 className="font-bold text-gray-900 text-sm">
-              AI Skill Recommendations
-            </h3>
+            <div>
+              <h3 id="skill-sug-title" className="font-bold text-gray-900 text-sm">
+                AI Skill Recommendations
+              </h3>
+              <p className="text-[11px] text-gray-500">AI suggestion • Select only skills you possess</p>
+            </div>
           </div>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+          <button onClick={onClose} className="p-1 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-slate-200/50" aria-label="Close dialog">
             <X className="w-4 h-4" />
           </button>
         </div>
 
         {/* Body */}
-        <div className="p-5 space-y-4 overflow-y-auto flex-1">
-          <p className="text-xs text-gray-600 leading-relaxed">
-            Based on your projects and work experience, here are complementary industry skills and tools. Select the ones you have real experience with to add them to your resume.
-          </p>
+        <div className="p-5 space-y-4 overflow-y-auto flex-1 text-xs">
+          {/* Privacy Notice */}
+          <div className="p-3 bg-purple-50/50 border border-purple-200 rounded-xl text-[11px] text-purple-950 leading-relaxed">
+            <strong>AI-assisted feature:</strong> When you request skill recommendations, your target role and existing skills are sent to our AI provider (Google Gemini) to suggest relevant industry skills. Review our{' '}
+            {onOpenPrivacyPolicy ? (
+              <button
+                type="button"
+                onClick={onOpenPrivacyPolicy}
+                className="font-bold underline hover:text-purple-700 cursor-pointer"
+              >
+                Privacy Policy
+              </button>
+            ) : (
+              <span className="font-bold">Privacy Policy</span>
+            )}{' '}
+            for details. Only select skills you genuinely possess.
+          </div>
 
           {/* Destination Category Picker */}
           {resumeData.skills.length > 0 && (

@@ -7,11 +7,13 @@ import { track } from '../../services/analytics';
 interface JobAnalyzerModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onOpenPrivacyPolicy?: () => void;
 }
 
 export const JobAnalyzerModal: React.FC<JobAnalyzerModalProps> = ({
   isOpen,
-  onClose
+  onClose,
+  onOpenPrivacyPolicy
 }) => {
   const { resumeData, updateResumeData } = useResume();
   const [jobDescription, setJobDescription] = useState('');
@@ -85,6 +87,23 @@ export const JobAnalyzerModal: React.FC<JobAnalyzerModalProps> = ({
 
         {/* Modal Content */}
         <div className="p-6 overflow-y-auto space-y-6">
+          {/* AI Transparency Notice */}
+          <div className="p-3 bg-purple-50/70 border border-purple-200 rounded-xl text-[11px] text-purple-950 leading-relaxed">
+            <strong>AI-assisted feature:</strong> When you analyze a job posting, the job description and your current skills list are sent to our AI provider (Google Gemini) to extract keywords and identify missing skills. Review our{' '}
+            {onOpenPrivacyPolicy ? (
+              <button
+                type="button"
+                onClick={onOpenPrivacyPolicy}
+                className="font-bold underline hover:text-purple-700 cursor-pointer"
+              >
+                Privacy Policy
+              </button>
+            ) : (
+              <span className="font-bold">Privacy Policy</span>
+            )}{' '}
+            for details. AI suggestions may contain errors and should always be reviewed before applying.
+          </div>
+
           {!analysis ? (
             <div className="space-y-4">
               <div>

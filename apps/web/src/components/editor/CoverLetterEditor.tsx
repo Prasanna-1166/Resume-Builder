@@ -18,10 +18,19 @@ import {
 } from 'lucide-react';
 
 interface CoverLetterEditorProps {
-  onOpenAiEnhance?: (type: 'summary' | 'bullet', text: string, context?: string) => void;
+  onOpenAiEnhance?: (
+    type: 'summary' | 'bullet',
+    currentText: string,
+    context?: string,
+    onApply?: (newText: string) => void
+  ) => void;
+  onOpenPrivacyPolicy?: () => void;
 }
 
-export const CoverLetterEditor: React.FC<CoverLetterEditorProps> = () => {
+export const CoverLetterEditor: React.FC<CoverLetterEditorProps> = ({
+  onOpenAiEnhance,
+  onOpenPrivacyPolicy
+}) => {
   const { activeDocument, updateCoverLetterData } = useResume();
   const clData = activeDocument as CoverLetterData;
 
@@ -114,6 +123,26 @@ export const CoverLetterEditor: React.FC<CoverLetterEditorProps> = () => {
 
   const handleImproveParagraph = async (type: 'opening' | 'closing' | number, text: string) => {
     if (!text || text.trim().length < 5) return;
+    if (onOpenAiEnhance) {
+      const sectionName =
+        type === 'opening'
+          ? 'Opening Paragraph'
+          : type === 'closing'
+          ? 'Closing Paragraph'
+          : `Body Paragraph ${Number(type) + 1}`;
+      const ctx = `Cover Letter ${sectionName} for ${clData.jobTitle || 'Target Role'} at ${recipient.company || 'Target Company'}`;
+      onOpenAiEnhance('bullet', text, ctx, (improvedText) => {
+        if (type === 'opening') {
+          updateCoverLetterData(prev => ({ ...prev, openingParagraph: improvedText }));
+        } else if (type === 'closing') {
+          updateCoverLetterData(prev => ({ ...prev, closingParagraph: improvedText }));
+        } else if (typeof type === 'number') {
+          handleBodyParagraphChange(type, improvedText);
+        }
+      });
+      return;
+    }
+
     setImproveLoadingIndex(type);
     try {
       const res = await apiClient.improveCoverLetter({
@@ -133,7 +162,7 @@ export const CoverLetterEditor: React.FC<CoverLetterEditorProps> = () => {
         }
       }
     } catch (err) {
-      console.error('Improve error:', err);
+      console.warn('Improve error:', err);
     } finally {
       setImproveLoadingIndex(null);
     }
@@ -152,7 +181,7 @@ export const CoverLetterEditor: React.FC<CoverLetterEditorProps> = () => {
           className="inline-flex items-center gap-1.5 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white text-xs px-3.5 py-2 rounded-xl font-semibold shadow-md shadow-indigo-600/20 transition-all hover:scale-[1.02]"
         >
           <Wand2 className="w-3.5 h-3.5" />
-          <span>AI Generate from Job Description</span>
+          <span>Generate with AI</span>
         </button>
       </div>
 
@@ -302,97 +331,100 @@ export const CoverLetterEditor: React.FC<CoverLetterEditorProps> = () => {
         />
       </div>
 
-      {/* Opening Paragraph */}
-      <div className="space-y-1.5">
-        <div className="flex items-center justify-between">
-          <label className="block text-xs font-bold text-slate-800">Opening Paragraph</label>
-          <button
-            onClick={() => handleImproveParagraph('opening', clData.openingParagraph)}
-            disabled={improveLoadingIndex === 'opening'}
-            className="inline-flex items-center gap-1 text-[11px] font-semibold text-indigo-600 hover:text-indigo-700"
-          >
-            <Sparkles className="w-3 h-3" />
-            <span>{improveLoadingIndex === 'opening' ? 'Improving...' : 'AI Improve'}</span>
-          </button>
-        </div>
-        <textarea
-          rows={3}
-          value={clData.openingParagraph || ''}
-          onChange={e => updateCoverLetterData(prev => ({ ...prev, openingParagraph: e.target.value }))}
-          placeholder="State the role you are applying for and key enthusiasm..."
-          className="w-full px-3 py-2 text-xs border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 leading-relaxed"
-        />
-      </div>
-
-      {/* Body Paragraphs */}
-      <div className="space-y-3 pt-3 border-t border-slate-100">
-        <div className="flex items-center justify-between">
-          <div>
-            <label className="block text-xs font-bold text-slate-900">Body Paragraphs</label>
-            <p className="text-[11px] text-slate-500">Highlight your relevant experience, technical competencies, and achievements.</p>
+        {/* Opening Paragraph */}
+        <div className="space-y-1.5">
+          <div className="flex items-center justify-between">
+            <label className="block text-xs font-bold text-slate-800">Opening Paragraph</label>
+            <button
+              onClick={() => handleImproveParagraph('opening', clData.openingParagraph)}
+              disabled={improveLoadingIndex === 'opening'}
+              className="inline-flex items-center gap-1 text-[11px] font-semibold text-indigo-600 hover:text-indigo-700"
+              title="Improve opening paragraph with AI"
+            >
+              <Sparkles className="w-3 h-3" />
+              <span>{improveLoadingIndex === 'opening' ? 'Improving...' : 'Improve with AI'}</span>
+            </button>
           </div>
-          <button
-            onClick={handleAddBodyParagraph}
-            className="inline-flex items-center gap-1 text-xs font-bold text-indigo-600 hover:bg-indigo-50 px-2.5 py-1 rounded-md transition-all"
-          >
-            <Plus className="w-3.5 h-3.5" />
-            <span>Add Paragraph</span>
-          </button>
+          <textarea
+            rows={3}
+            value={clData.openingParagraph || ''}
+            onChange={e => updateCoverLetterData(prev => ({ ...prev, openingParagraph: e.target.value }))}
+            placeholder="State the role you are applying for and key enthusiasm..."
+            className="w-full px-3 py-2 text-xs border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 leading-relaxed"
+          />
         </div>
 
-        {(clData.bodyParagraphs || []).map((para, idx) => (
-          <div key={idx} className="bg-slate-50 p-3 rounded-xl border border-slate-200 space-y-1.5">
-            <div className="flex items-center justify-between">
-              <span className="text-[11px] font-bold text-slate-600">Paragraph {idx + 1}</span>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => handleImproveParagraph(idx, para)}
-                  disabled={improveLoadingIndex === idx}
-                  className="inline-flex items-center gap-1 text-[11px] font-semibold text-indigo-600 hover:text-indigo-700"
-                >
-                  <Sparkles className="w-3 h-3" />
-                  <span>{improveLoadingIndex === idx ? 'Improving...' : 'AI Improve'}</span>
-                </button>
-                {clData.bodyParagraphs.length > 1 && (
-                  <button
-                    onClick={() => handleRemoveBodyParagraph(idx)}
-                    className="text-slate-400 hover:text-red-500 p-1"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </button>
-                )}
-              </div>
+        {/* Body Paragraphs */}
+        <div className="space-y-3 pt-3 border-t border-slate-100">
+          <div className="flex items-center justify-between">
+            <div>
+              <label className="block text-xs font-bold text-slate-900">Body Paragraphs</label>
+              <p className="text-[11px] text-slate-500">Highlight your relevant experience, technical competencies, and achievements.</p>
             </div>
-            <textarea
-              rows={3}
-              value={para}
-              onChange={e => handleBodyParagraphChange(idx, e.target.value)}
-              className="w-full px-3 py-2 text-xs bg-white border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 leading-relaxed"
-            />
+            <button
+              onClick={handleAddBodyParagraph}
+              className="inline-flex items-center gap-1 text-xs font-bold text-indigo-600 hover:bg-indigo-50 px-2.5 py-1 rounded-md transition-all"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              <span>Add Paragraph</span>
+            </button>
           </div>
-        ))}
-      </div>
 
-      {/* Closing Paragraph */}
-      <div className="space-y-1.5 pt-3 border-t border-slate-100">
-        <div className="flex items-center justify-between">
-          <label className="block text-xs font-bold text-slate-800">Closing Paragraph & Call-to-Action</label>
-          <button
-            onClick={() => handleImproveParagraph('closing', clData.closingParagraph)}
-            disabled={improveLoadingIndex === 'closing'}
-            className="inline-flex items-center gap-1 text-[11px] font-semibold text-indigo-600 hover:text-indigo-700"
-          >
-            <Sparkles className="w-3 h-3" />
-            <span>{improveLoadingIndex === 'closing' ? 'Improving...' : 'AI Improve'}</span>
-          </button>
+          {(clData.bodyParagraphs || []).map((para, idx) => (
+            <div key={idx} className="bg-slate-50 p-3 rounded-xl border border-slate-200 space-y-1.5">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-bold text-slate-600">Paragraph {idx + 1}</span>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => handleImproveParagraph(idx, para)}
+                    disabled={improveLoadingIndex === idx}
+                    className="inline-flex items-center gap-1 text-[11px] font-semibold text-indigo-600 hover:text-indigo-700"
+                    title="Improve body paragraph with AI"
+                  >
+                    <Sparkles className="w-3 h-3" />
+                    <span>{improveLoadingIndex === idx ? 'Improving...' : 'Improve with AI'}</span>
+                  </button>
+                  {clData.bodyParagraphs.length > 1 && (
+                    <button
+                      onClick={() => handleRemoveBodyParagraph(idx)}
+                      className="text-slate-400 hover:text-red-500 p-1"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
+              </div>
+              <textarea
+                rows={3}
+                value={para}
+                onChange={e => handleBodyParagraphChange(idx, e.target.value)}
+                className="w-full px-3 py-2 text-xs bg-white border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 leading-relaxed"
+              />
+            </div>
+          ))}
         </div>
-        <textarea
-          rows={2}
-          value={clData.closingParagraph || ''}
-          onChange={e => updateCoverLetterData(prev => ({ ...prev, closingParagraph: e.target.value }))}
-          className="w-full px-3 py-2 text-xs border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 leading-relaxed"
-        />
-      </div>
+
+        {/* Closing Paragraph */}
+        <div className="space-y-1.5 pt-3 border-t border-slate-100">
+          <div className="flex items-center justify-between">
+            <label className="block text-xs font-bold text-slate-800">Closing Paragraph & Call-to-Action</label>
+            <button
+              onClick={() => handleImproveParagraph('closing', clData.closingParagraph)}
+              disabled={improveLoadingIndex === 'closing'}
+              className="inline-flex items-center gap-1 text-[11px] font-semibold text-indigo-600 hover:text-indigo-700"
+              title="Improve closing paragraph with AI"
+            >
+              <Sparkles className="w-3 h-3" />
+              <span>{improveLoadingIndex === 'closing' ? 'Improving...' : 'Improve with AI'}</span>
+            </button>
+          </div>
+          <textarea
+            rows={2}
+            value={clData.closingParagraph || ''}
+            onChange={e => updateCoverLetterData(prev => ({ ...prev, closingParagraph: e.target.value }))}
+            className="w-full px-3 py-2 text-xs border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 leading-relaxed"
+          />
+        </div>
 
       {/* Signoff */}
       <div className="pt-3 border-t border-slate-100">
@@ -409,19 +441,40 @@ export const CoverLetterEditor: React.FC<CoverLetterEditorProps> = () => {
 
       {/* AI Generation Modal */}
       {aiGenerateOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full p-6 border border-slate-100 max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in" role="dialog" aria-modal="true" aria-labelledby="generate-cl-title">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full p-5 sm:p-6 border border-slate-100 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
                 <Wand2 className="w-5 h-5 text-indigo-600" />
-                <h3 className="text-base font-bold text-slate-900">Generate Cover Letter from Job Description</h3>
+                <h3 id="generate-cl-title" className="text-base font-bold text-slate-900">
+                  Generate Cover Letter with AI
+                </h3>
               </div>
-              <button onClick={() => setAiGenerateOpen(false)} className="text-slate-400 hover:text-slate-600">✕</button>
+              <button
+                onClick={() => setAiGenerateOpen(false)}
+                className="text-slate-400 hover:text-slate-600 p-1"
+                aria-label="Close dialog"
+              >
+                ✕
+              </button>
             </div>
 
-            <p className="text-xs text-slate-500 mb-4">
-              Paste the target job posting. Our AI analyzes the role expectations and crafts a personalized letter referencing only your real qualifications.
-            </p>
+            {/* Contextual AI Disclosure */}
+            <div className="p-3 bg-purple-50/70 border border-purple-200 rounded-xl mb-4 text-[11px] text-purple-950 leading-relaxed">
+              <strong>AI-assisted feature:</strong> When you generate a cover letter, your target job description and profile fields are sent to our AI provider (Google Gemini) to draft suggestions. Review our{' '}
+              {onOpenPrivacyPolicy ? (
+                <button
+                  type="button"
+                  onClick={onOpenPrivacyPolicy}
+                  className="font-bold underline hover:text-purple-700 cursor-pointer"
+                >
+                  Privacy Policy
+                </button>
+              ) : (
+                <span className="font-bold">Privacy Policy</span>
+              )}{' '}
+              for details. Always review suggestions before using them as AI outputs may contain errors. Your existing cover letter is preserved until you approve.
+            </div>
 
             <div className="space-y-4">
               <div>
@@ -431,7 +484,7 @@ export const CoverLetterEditor: React.FC<CoverLetterEditorProps> = () => {
                   placeholder="Paste the requirements, responsibilities, or role overview from the job listing..."
                   value={jobDescInput}
                   onChange={e => setJobDescInput(e.target.value)}
-                  className="w-full px-3 py-2 text-xs border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                  className="w-full px-3 py-2 text-xs border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 leading-relaxed"
                 />
               </div>
 
@@ -443,7 +496,7 @@ export const CoverLetterEditor: React.FC<CoverLetterEditorProps> = () => {
                   className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white text-xs font-bold rounded-xl shadow transition-all flex items-center justify-center gap-2"
                 >
                   {isGenerating ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
-                  <span>{isGenerating ? 'Analyzing & Drafting Letter...' : 'Draft Cover Letter'}</span>
+                  <span>{isGenerating ? 'Analyzing & Drafting Letter...' : 'Draft Cover Letter with AI'}</span>
                 </button>
               )}
 
@@ -451,32 +504,68 @@ export const CoverLetterEditor: React.FC<CoverLetterEditorProps> = () => {
               {generatedPreview && (
                 <div className="bg-slate-50 p-4 rounded-xl border border-indigo-200 space-y-3">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-indigo-900">Generated Draft Preview</span>
-                    <span className="text-[10px] text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full font-bold">
-                      Ready to Apply
+                    <div>
+                      <span className="text-xs font-bold text-indigo-900 block">Suggested Version</span>
+                      <span className="text-[10.5px] text-slate-500">Review & edit before inserting</span>
+                    </div>
+                    <span className="text-[10px] text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full font-bold border border-emerald-200">
+                      AI Suggestion
                     </span>
                   </div>
 
-                  <p className="text-xs text-slate-700 leading-relaxed italic">
-                    "{generatedPreview.openingParagraph}"
-                  </p>
+                  <div className="space-y-2">
+                    <div>
+                      <label className="text-[10px] font-bold text-slate-500 uppercase block mb-0.5">Opening</label>
+                      <textarea
+                        rows={2}
+                        value={generatedPreview.openingParagraph || ''}
+                        onChange={e => setGeneratedPreview((prev: any) => ({ ...prev, openingParagraph: e.target.value }))}
+                        className="w-full p-2 text-xs bg-white border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                      />
+                    </div>
 
-                  {(generatedPreview.bodyParagraphs || []).map((b: string, i: number) => (
-                    <p key={i} className="text-xs text-slate-600 leading-relaxed">
-                      {b}
-                    </p>
-                  ))}
+                    {(generatedPreview.bodyParagraphs || []).map((b: string, i: number) => (
+                      <div key={i}>
+                        <label className="text-[10px] font-bold text-slate-500 uppercase block mb-0.5">Body Paragraph {i + 1}</label>
+                        <textarea
+                          rows={3}
+                          value={b}
+                          onChange={e => {
+                            const val = e.target.value;
+                            setGeneratedPreview((prev: any) => {
+                              const updated = [...(prev.bodyParagraphs || [])];
+                              updated[i] = val;
+                              return { ...prev, bodyParagraphs: updated };
+                            });
+                          }}
+                          className="w-full p-2 text-xs bg-white border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                        />
+                      </div>
+                    ))}
 
-                  <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-200">
+                    <div>
+                      <label className="text-[10px] font-bold text-slate-500 uppercase block mb-0.5">Closing</label>
+                      <textarea
+                        rows={2}
+                        value={generatedPreview.closingParagraph || ''}
+                        onChange={e => setGeneratedPreview((prev: any) => ({ ...prev, closingParagraph: e.target.value }))}
+                        className="w-full p-2 text-xs bg-white border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex flex-wrap items-center justify-end gap-2 pt-3 border-t border-slate-200">
                     <button
+                      type="button"
                       onClick={() => setGeneratedPreview(null)}
-                      className="px-3 py-1.5 text-xs text-slate-600 hover:bg-slate-200 rounded-lg"
+                      className="px-3 py-1.5 text-xs text-slate-600 hover:bg-slate-200 rounded-lg transition-colors"
                     >
-                      Re-generate
+                      Discard / Keep Original
                     </button>
                     <button
+                      type="button"
                       onClick={handleApplyGenerated}
-                      className="inline-flex items-center gap-1.5 px-4 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-lg shadow"
+                      className="inline-flex items-center gap-1.5 px-4 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-lg shadow transition-colors"
                     >
                       <CheckCircle className="w-3.5 h-3.5" />
                       <span>Approve & Insert into Editor</span>

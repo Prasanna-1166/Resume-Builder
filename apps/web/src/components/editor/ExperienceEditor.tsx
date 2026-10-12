@@ -4,7 +4,12 @@ import { ExperienceItem } from '@ai-resume/core';
 import { Plus, Trash2, Briefcase, ChevronDown, ChevronUp, Sparkles } from 'lucide-react';
 
 interface ExperienceEditorProps {
-  onOpenAiEnhance?: (type: 'bullet', currentText: string, context?: string) => void;
+  onOpenAiEnhance?: (
+    type: 'bullet',
+    currentText: string,
+    context?: string,
+    onApply?: (newText: string) => void
+  ) => void;
 }
 
 export const ExperienceEditor: React.FC<ExperienceEditorProps> = ({ onOpenAiEnhance }) => {
@@ -235,9 +240,17 @@ export const ExperienceEditor: React.FC<ExperienceEditorProps> = ({ onOpenAiEnha
                       {onOpenAiEnhance && (
                         <button
                           type="button"
-                          onClick={() => onOpenAiEnhance('bullet', b, `${exp.role} at ${exp.company}`)}
-                          className="p-1 text-purple-600 hover:bg-purple-50 rounded"
-                          title="AI Improve Bullet"
+                          onClick={() =>
+                            onOpenAiEnhance(
+                              'bullet',
+                              b,
+                              `${exp.role || 'Position'} at ${exp.company || 'Company'}`,
+                              (improved) => handleBulletChange(idx, bi, improved)
+                            )
+                          }
+                          className="p-1 text-purple-600 hover:bg-purple-50 rounded transition-colors"
+                          title="Improve with AI"
+                          aria-label="Improve bullet point with AI"
                         >
                           <Sparkles className="w-3.5 h-3.5" />
                         </button>

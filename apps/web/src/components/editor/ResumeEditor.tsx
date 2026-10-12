@@ -27,7 +27,12 @@ import {
 } from 'lucide-react';
 
 interface ResumeEditorProps {
-  onOpenAiEnhance?: (type: 'summary' | 'bullet', currentText: string, context?: string) => void;
+  onOpenAiEnhance?: (
+    type: 'summary' | 'bullet',
+    currentText: string,
+    context?: string,
+    onApply?: (newText: string) => void
+  ) => void;
   onOpenSkillSuggestions?: () => void;
   onOpenAtsAuditor?: () => void;
   onOpenAuthModal?: (mode?: 'login' | 'register') => void;

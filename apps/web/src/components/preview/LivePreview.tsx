@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useResume } from '../../context/ResumeContext';
 import { TEMPLATE_CATALOG, getTemplateComponent } from '@ai-resume/templates';
 import { apiClient } from '../../services/api';
-import { Download, Printer, ZoomIn, ZoomOut, RotateCcw, FileText } from 'lucide-react';
+import { Download, Printer, ZoomIn, ZoomOut, RotateCcw, FileText, Maximize2 } from 'lucide-react';
 import { track } from '../../services/analytics';
 
 interface LivePreviewProps {
@@ -11,7 +11,13 @@ interface LivePreviewProps {
 
 export const LivePreview: React.FC<LivePreviewProps> = ({ onOpenGallery }) => {
   const { activeDocument, setTemplate } = useResume();
-  const [zoomLevel, setZoomLevel] = useState<number>(85);
+  const [zoomLevel, setZoomLevel] = useState<number>(() => {
+    if (typeof window !== 'undefined' && window.innerWidth < 640) {
+      // Auto-fit initial zoom on mobile devices (~38%-45%)
+      return Math.max(35, Math.min(65, Math.floor((window.innerWidth - 32) / 794 * 100)));
+    }
+    return 85;
+  });
   const [isExportingDocx, setIsExportingDocx] = useState(false);
 
   const docType = activeDocument.documentType || 'RESUME';
@@ -62,17 +68,28 @@ export const LivePreview: React.FC<LivePreviewProps> = ({ onOpenGallery }) => {
     setTemplate(newTemplateId);
   };
 
+  const handleFitScreen = () => {
+    const container = document.querySelector('.preview-canvas-wrapper');
+    if (container) {
+      const availableWidth = container.clientWidth - 32;
+      const calculatedZoom = Math.max(30, Math.min(100, Math.floor((availableWidth / 794) * 100)));
+      setZoomLevel(calculatedZoom);
+    } else {
+      setZoomLevel(window.innerWidth < 640 ? 42 : 85);
+    }
+  };
+
   return (
     <div className="flex flex-col h-full space-y-3">
       {/* Top Toolbar */}
-      <div className="bg-white p-3 rounded-xl border border-gray-200 shadow-2xs flex flex-wrap items-center justify-between gap-2.5 no-print">
+      <div className="bg-white p-2.5 sm:p-3 rounded-xl border border-gray-200 shadow-2xs flex flex-wrap items-center justify-between gap-2 no-print">
         {/* Template Switcher Dropdown */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5 sm:gap-2">
           <span className="text-xs font-semibold text-gray-700 hidden sm:inline">Template:</span>
           <select
             value={activeDocument.templateId}
             onChange={e => handleTemplateSwitch(e.target.value)}
-            className="px-2.5 py-1 text-xs bg-gray-50 border border-gray-300 rounded-lg font-semibold text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            className="px-2 sm:px-2.5 py-1 text-xs bg-gray-50 border border-gray-300 rounded-lg font-semibold text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 max-w-[150px] sm:max-w-none truncate"
           >
             {(compatibleTemplates.length > 0 ? compatibleTemplates : TEMPLATE_CATALOG).map(t => (
               <option key={t.id} value={t.id}>
@@ -94,13 +111,13 @@ export const LivePreview: React.FC<LivePreviewProps> = ({ onOpenGallery }) => {
         {/* Zoom Controls */}
         <div className="flex items-center gap-1 bg-gray-100 p-0.5 rounded-lg border border-gray-200">
           <button
-            onClick={() => setZoomLevel(prev => Math.max(50, prev - 10))}
+            onClick={() => setZoomLevel(prev => Math.max(30, prev - 10))}
             className="p-1 text-gray-600 hover:text-gray-900 rounded"
             title="Zoom Out"
           >
             <ZoomOut className="w-3.5 h-3.5" />
           </button>
-          <span className="text-[11px] font-mono px-1 text-gray-700">{zoomLevel}%</span>
+          <span className="text-[11px] font-mono px-1 text-gray-700 min-w-[32px] text-center">{zoomLevel}%</span>
           <button
             onClick={() => setZoomLevel(prev => Math.min(130, prev + 10))}
             className="p-1 text-gray-600 hover:text-gray-900 rounded"
@@ -109,9 +126,17 @@ export const LivePreview: React.FC<LivePreviewProps> = ({ onOpenGallery }) => {
             <ZoomIn className="w-3.5 h-3.5" />
           </button>
           <button
+            onClick={handleFitScreen}
+            className="px-1.5 py-0.5 text-[10px] font-semibold bg-white text-indigo-700 hover:bg-indigo-50 rounded border border-indigo-200 ml-0.5 flex items-center gap-1"
+            title="Fit to Screen"
+          >
+            <Maximize2 className="w-2.5 h-2.5" />
+            <span>Fit</span>
+          </button>
+          <button
             onClick={() => setZoomLevel(85)}
-            className="p-1 text-gray-500 hover:text-gray-900 rounded ml-0.5"
-            title="Reset Zoom"
+            className="p-1 text-gray-500 hover:text-gray-900 rounded"
+            title="Reset Zoom (85%)"
           >
             <RotateCcw className="w-3 h-3" />
           </button>
