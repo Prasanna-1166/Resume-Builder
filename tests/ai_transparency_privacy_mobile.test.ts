@@ -7,6 +7,10 @@ import { ResumeData } from '../packages/resume-core/src/types';
 describe('AI Transparency & Human-In-The-Loop Approval Tests', () => {
   it('should ensure original document text is preserved when suggestions are rejected or cancelled', () => {
     const originalDocument: ResumeData = {
+      id: 'doc-ai-test-1',
+      title: 'Original AI Test Resume',
+      updatedAt: '2026-03-30T10:00:00Z',
+      templateId: 'template_01',
       personalInfo: {
         fullName: 'Jane Doe',
         email: 'jane@example.com',
@@ -21,14 +25,17 @@ describe('AI Transparency & Human-In-The-Loop Approval Tests', () => {
           id: 'exp1',
           role: 'Junior Engineer',
           company: 'Acme Corp',
-          duration: '2022 - 2024',
+          startDate: '2022',
+          endDate: '2024',
           bullets: ['Built UI components using React.', 'Collaborated with team on pull requests.']
         }
       ],
       education: [],
       projects: [],
       certifications: [],
-      customSections: []
+      customSections: [],
+      sectionVisibility: { personalInfo: true, summary: true, education: true, experience: true, projects: true, skills: true, certifications: true, achievements: true, publications: true, activities: true, languages: true, customSections: true },
+      sectionOrder: ['personalInfo', 'summary', 'experience', 'skills']
     };
 
     // User triggers AI suggestion
@@ -104,6 +111,10 @@ describe('AI Transparency & Human-In-The-Loop Approval Tests', () => {
 describe('Privacy, Data Disclosure & Local Execution Verification', () => {
   it('should verify ATS parser audit runs 100% locally and deterministically with zero network/AI dependency', () => {
     const testDoc: ResumeData = {
+      id: 'doc-ats-test-1',
+      title: 'ATS Audit Test Resume',
+      updatedAt: '2026-03-30T10:00:00Z',
+      templateId: 'template_01',
       personalInfo: {
         fullName: 'Alex Morgan',
         email: 'alex@example.com',
@@ -118,7 +129,9 @@ describe('Privacy, Data Disclosure & Local Execution Verification', () => {
           id: 'exp1',
           role: 'Full Stack Engineer',
           company: 'Tech Innovations',
-          duration: '2021 - Present',
+          startDate: '2021',
+          endDate: 'Present',
+          current: true,
           bullets: [
             'Developed RESTful microservices handling user authentication and document persistence.',
             'Implemented responsive client interfaces reducing page load times by 25%.'
@@ -128,7 +141,9 @@ describe('Privacy, Data Disclosure & Local Execution Verification', () => {
       education: [],
       projects: [],
       certifications: [],
-      customSections: []
+      customSections: [],
+      sectionVisibility: { personalInfo: true, summary: true, education: true, experience: true, projects: true, skills: true, certifications: true, achievements: true, publications: true, activities: true, languages: true, customSections: true },
+      sectionOrder: ['personalInfo', 'summary', 'experience', 'skills']
     };
 
     // runAtsAudit executes synchronously in memory with zero network or AI calls
