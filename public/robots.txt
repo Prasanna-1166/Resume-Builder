@@ -1,0 +1,29 @@
+# Robots.txt for CareerDoc AI Resume Builder
+# Production Domain: https://dvlpr.dpdns.org/
+
+User-agent: *
+Allow: /
+Allow: /ai-resume-builder
+Allow: /ats-resume-checker
+Allow: /resume-templates
+Allow: /ai-cover-letter-generator
+Allow: /resume-builder-for-freshers
+Allow: /developer-resume-builder
+Allow: /blog
+Allow: /blog/
+Allow: /assets/
+Allow: /favicon.svg
+Allow: /og-image.svg
+
+# Protect Private User Application Areas and Dynamic State
+Disallow: /dashboard
+Disallow: /dashboard/
+Disallow: /editor
+Disallow: /editor/
+Disallow: /admin
+Disallow: /admin/
+Disallow: /api/
+Disallow: /api/*
+
+# Explicit Sitemap References
+Sitemap: https://dvlpr.dpdns.org/sitemap.xml

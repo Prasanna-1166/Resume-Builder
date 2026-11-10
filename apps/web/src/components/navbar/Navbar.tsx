@@ -16,7 +16,20 @@ import {
 import { useResume } from '../../context/ResumeContext';
 import { useAuth } from '../../context/AuthContext';
 
-export type AppTabType = 'landing' | 'dashboard' | 'gallery' | 'editor' | 'admin';
+export type AppTabType =
+  | 'landing'
+  | 'dashboard'
+  | 'gallery'
+  | 'editor'
+  | 'admin'
+  | 'ai-resume-builder'
+  | 'ats-resume-checker'
+  | 'resume-templates'
+  | 'ai-cover-letter-generator'
+  | 'resume-builder-for-freshers'
+  | 'developer-resume-builder'
+  | 'blog'
+  | 'blog-post';
 
 interface NavbarProps {
   currentTab: AppTabType;
@@ -91,14 +104,39 @@ export const Navbar: React.FC<NavbarProps> = ({
             <button
               onClick={() => setCurrentTab('gallery')}
               className={`flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-medium transition-colors ${
-                currentTab === 'gallery'
+                currentTab === 'gallery' || currentTab === 'resume-templates'
                   ? 'bg-indigo-50 text-indigo-700 font-bold'
                   : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
               }`}
-              title="Templates"
+              title="38 ATS Resume Templates"
             >
               <LayoutGrid className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
               <span className="hidden xs:inline sm:inline">Templates</span>
+            </button>
+
+            <button
+              onClick={() => setCurrentTab('ats-resume-checker')}
+              className={`hidden lg:flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-medium transition-colors ${
+                currentTab === 'ats-resume-checker'
+                  ? 'bg-indigo-50 text-indigo-700 font-bold'
+                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+              }`}
+              title="ATS Resume Checker"
+            >
+              <ShieldCheck className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0 text-emerald-600" />
+              <span>ATS Checker</span>
+            </button>
+
+            <button
+              onClick={() => setCurrentTab('blog')}
+              className={`hidden lg:flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-medium transition-colors ${
+                currentTab === 'blog' || currentTab === 'blog-post'
+                  ? 'bg-indigo-50 text-indigo-700 font-bold'
+                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+              }`}
+              title="Career Strategy Blog"
+            >
+              <span>Blog</span>
             </button>
 
             <button

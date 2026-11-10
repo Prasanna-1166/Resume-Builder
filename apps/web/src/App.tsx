@@ -24,9 +24,29 @@ import { PrivacyPolicyModal } from './components/common/PrivacyPolicyModal';
 import { TermsModal } from './components/common/TermsModal';
 import { track } from './services/analytics';
 
+// SEO Modules & Landing Pages
+import { MetaTags } from './SEO/metadata/MetaTags';
+import { AiResumeBuilderPage } from './pages/ai-resume-builder/AiResumeBuilderPage';
+import { AtsResumeCheckerPage } from './pages/ats-resume-checker/AtsResumeCheckerPage';
+import { ResumeTemplatesPage } from './pages/resume-templates/ResumeTemplatesPage';
+import { AiCoverLetterGeneratorPage } from './pages/ai-cover-letter-generator/AiCoverLetterGeneratorPage';
+import { FresherResumeBuilderPage } from './pages/resume-builder-for-freshers/FresherResumeBuilderPage';
+import { DeveloperResumeBuilderPage } from './pages/developer-resume-builder/DeveloperResumeBuilderPage';
+import { BlogHubPage } from './pages/blog/BlogHubPage';
+import { BlogPostPage } from './pages/blog/BlogPostPage';
+
+function getSlugFromPath(): string {
+  if (typeof window === 'undefined') return '';
+  const path = window.location.pathname;
+  if (path.startsWith('/blog/')) {
+    return path.replace(/^\/blog\//, '').replace(/\/$/, '');
+  }
+  return '';
+}
+
 function getTabFromPath(): AppTabType {
   if (typeof window === 'undefined') return 'landing';
-  const path = window.location.pathname.toLowerCase();
+  const path = window.location.pathname.toLowerCase().replace(/\/$/, '') || '/';
   const hash = window.location.hash.toLowerCase().replace(/^#\/?/, '');
   const searchParams = new URLSearchParams(window.location.search);
   const tabParam = (searchParams.get('tab') || '').toLowerCase();
@@ -46,7 +66,14 @@ function getTabFromPath(): AppTabType {
   if (path === '/editor' || path.startsWith('/editor/') || hash === 'editor' || tabParam === 'editor') {
     return 'editor';
   }
+  if (path === '/ai-resume-builder' || hash === 'ai-resume-builder' || tabParam === 'ai-resume-builder') {
+    return 'ai-resume-builder';
+  }
+  if (path === '/ats-resume-checker' || hash === 'ats-resume-checker' || tabParam === 'ats-resume-checker') {
+    return 'ats-resume-checker';
+  }
   if (
+    path === '/resume-templates' ||
     path === '/templates' ||
     path === '/gallery' ||
     hash === 'templates' ||
@@ -54,12 +81,40 @@ function getTabFromPath(): AppTabType {
     tabParam === 'templates' ||
     tabParam === 'gallery'
   ) {
-    return 'gallery';
+    return 'resume-templates';
   }
+  if (
+    path === '/ai-cover-letter-generator' ||
+    hash === 'ai-cover-letter-generator' ||
+    tabParam === 'ai-cover-letter-generator'
+  ) {
+    return 'ai-cover-letter-generator';
+  }
+  if (
+    path === '/resume-builder-for-freshers' ||
+    hash === 'resume-builder-for-freshers' ||
+    tabParam === 'resume-builder-for-freshers'
+  ) {
+    return 'resume-builder-for-freshers';
+  }
+  if (
+    path === '/developer-resume-builder' ||
+    hash === 'developer-resume-builder' ||
+    tabParam === 'developer-resume-builder'
+  ) {
+    return 'developer-resume-builder';
+  }
+  if (path.startsWith('/blog/')) {
+    return 'blog-post';
+  }
+  if (path === '/blog' || hash === 'blog' || tabParam === 'blog') {
+    return 'blog';
+  }
+
   return 'landing';
 }
 
-function getPathFromTab(tab: AppTabType): string {
+function getPathFromTab(tab: AppTabType, slug?: string): string {
   switch (tab) {
     case 'admin':
       return '/admin';
@@ -67,8 +122,23 @@ function getPathFromTab(tab: AppTabType): string {
       return '/dashboard';
     case 'editor':
       return '/editor';
+    case 'resume-templates':
     case 'gallery':
-      return '/templates';
+      return '/resume-templates';
+    case 'ai-resume-builder':
+      return '/ai-resume-builder';
+    case 'ats-resume-checker':
+      return '/ats-resume-checker';
+    case 'ai-cover-letter-generator':
+      return '/ai-cover-letter-generator';
+    case 'resume-builder-for-freshers':
+      return '/resume-builder-for-freshers';
+    case 'developer-resume-builder':
+      return '/developer-resume-builder';
+    case 'blog':
+      return '/blog';
+    case 'blog-post':
+      return slug ? `/blog/${slug}` : '/blog';
     case 'landing':
     default:
       return '/';
@@ -77,7 +147,8 @@ function getPathFromTab(tab: AppTabType): string {
 
 const AppContent: React.FC = () => {
   const [currentTab, setCurrentTabState] = useState<AppTabType>(() => getTabFromPath());
-  const { activeDocument, isCoverLetter, updateResumeData } = useResume();
+  const [blogSlug, setBlogSlug] = useState<string>(() => getSlugFromPath());
+  const { activeDocument, isCoverLetter, updateResumeData, createDocument } = useResume();
   const { isAuthenticated, isAdmin } = useAuth();
 
   const navigateToTab = (tab: AppTabType, replaceState = false) => {
@@ -90,6 +161,17 @@ const AppContent: React.FC = () => {
         window.history.pushState({ tab }, '', targetPath);
       }
     }
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const navigateToRoute = (route: string) => {
+    const cleanRoute = route.split('?')[0].replace(/\/$/, '') || '/';
+    if (window.location.pathname !== cleanRoute) {
+      window.history.pushState({}, '', cleanRoute);
+    }
+    setCurrentTabState(getTabFromPath());
+    setBlogSlug(getSlugFromPath());
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   // Modal States
@@ -99,6 +181,7 @@ const AppContent: React.FC = () => {
   useEffect(() => {
     const handleUrlChange = () => {
       setCurrentTabState(getTabFromPath());
+      setBlogSlug(getSlugFromPath());
       const path = window.location.pathname.toLowerCase();
       const hash = window.location.hash.toLowerCase();
       const search = window.location.search.toLowerCase();
@@ -136,7 +219,7 @@ const AppContent: React.FC = () => {
   const [tailorModalOpen, setTailorModalOpen] = useState(false);
   const [versionModalDocId, setVersionModalDocId] = useState<string | null>(null);
 
-  // New Auth, Feedback, Profile Modals
+  // Auth, Feedback, Profile Modals
   const [authModalState, setAuthModalState] = useState<{ isOpen: boolean; mode: 'login' | 'register' }>({
     isOpen: false,
     mode: 'login'
@@ -167,6 +250,9 @@ const AppContent: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-slate-100/70 flex flex-col font-sans text-slate-900">
+      {/* Global Dynamic Head & Structured Data Management */}
+      <MetaTags path={getPathFromTab(currentTab, blogSlug)} />
+
       {/* Navigation */}
       <Navbar
         currentTab={currentTab}
@@ -190,7 +276,7 @@ const AppContent: React.FC = () => {
         {currentTab === 'landing' && (
           <LandingPage
             onSelectTemplate={(_id) => navigateToTab('editor')}
-            onBrowseTemplates={() => navigateToTab('gallery')}
+            onBrowseTemplates={() => navigateToTab('resume-templates')}
             onCreateResume={() => {
               track('RESUME_CREATED', { metadata: { source: 'landing_cta' } });
               navigateToTab('dashboard');
@@ -198,11 +284,72 @@ const AppContent: React.FC = () => {
           />
         )}
 
+        {currentTab === 'ai-resume-builder' && (
+          <AiResumeBuilderPage
+            onStartBuilding={() => navigateToTab('editor')}
+            onBrowseTemplates={() => navigateToTab('resume-templates')}
+          />
+        )}
+
+        {currentTab === 'ats-resume-checker' && (
+          <AtsResumeCheckerPage
+            onStartBuilding={() => navigateToTab('editor')}
+            onOpenAtsAuditor={() => setAtsAuditorOpen(true)}
+          />
+        )}
+
+        {(currentTab === 'resume-templates' || currentTab === 'gallery') && (
+          <ResumeTemplatesPage
+            onSelectTemplate={(_id) => navigateToTab('editor')}
+            onStartBuilding={() => navigateToTab('editor')}
+          />
+        )}
+
+        {currentTab === 'ai-cover-letter-generator' && (
+          <AiCoverLetterGeneratorPage
+            onStartCoverLetter={() => {
+              createDocument('COVER_LETTER', 'EXPERIENCED', 'template_cl_modern', 'My Cover Letter');
+              navigateToTab('editor');
+            }}
+            onBrowseTemplates={() => navigateToTab('resume-templates')}
+          />
+        )}
+
+        {currentTab === 'resume-builder-for-freshers' && (
+          <FresherResumeBuilderPage
+            onStartBuilding={() => navigateToTab('editor')}
+            onBrowseTemplates={() => navigateToTab('resume-templates')}
+          />
+        )}
+
+        {currentTab === 'developer-resume-builder' && (
+          <DeveloperResumeBuilderPage
+            onStartBuilding={() => navigateToTab('editor')}
+            onBrowseTemplates={() => navigateToTab('resume-templates')}
+          />
+        )}
+
+        {currentTab === 'blog' && (
+          <BlogHubPage
+            onSelectPost={(slug) => navigateToRoute(`/blog/${slug}`)}
+            onNavigateHome={() => navigateToTab('landing')}
+            onNavigateRoute={navigateToRoute}
+          />
+        )}
+
+        {currentTab === 'blog-post' && (
+          <BlogPostPage
+            slug={blogSlug}
+            onBackToBlog={() => navigateToRoute('/blog')}
+            onNavigateRoute={navigateToRoute}
+          />
+        )}
+
         {currentTab === 'dashboard' && (
           <DocumentDashboard
             onOpenEditor={() => navigateToTab('editor')}
             onOpenPreview={() => navigateToTab('editor')}
-            onBrowseTemplates={() => navigateToTab('gallery')}
+            onBrowseTemplates={() => navigateToTab('resume-templates')}
             onOpenVersionModal={(docId) => setVersionModalDocId(docId)}
             onOpenProfileModal={() => {
               if (!isAuthenticated) {
@@ -213,12 +360,6 @@ const AppContent: React.FC = () => {
             }}
             onOpenAuthModal={(mode = 'register') => setAuthModalState({ isOpen: true, mode })}
             onOpenFeedbackModal={() => setFeedbackModalOpen(true)}
-          />
-        )}
-
-        {currentTab === 'gallery' && (
-          <TemplateGallery
-            onSelectTemplate={(_id) => navigateToTab('editor')}
           />
         )}
 
@@ -248,7 +389,7 @@ const AppContent: React.FC = () => {
 
               {/* Right Column: Live Document Preview */}
               <div className="lg:col-span-7 sticky top-20">
-                <LivePreview onOpenGallery={() => navigateToTab('gallery')} />
+                <LivePreview onOpenGallery={() => navigateToTab('resume-templates')} />
               </div>
             </div>
           </div>
@@ -261,12 +402,13 @@ const AppContent: React.FC = () => {
         )}
       </main>
 
-      {/* Footer */}
+      {/* Footer with Comprehensive Internal Link Hub */}
       <AppFooter
         onOpenPrivacyPolicy={() => setPrivacyModalOpen(true)}
         onOpenTerms={() => setTermsModalOpen(true)}
         onOpenFeedback={() => setFeedbackModalOpen(true)}
         onNavigateAdmin={() => navigateToTab('admin')}
+        onNavigateRoute={navigateToRoute}
       />
 
       {/* Modals */}
